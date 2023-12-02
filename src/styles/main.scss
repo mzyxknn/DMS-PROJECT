@@ -1,0 +1,53 @@
+$theme-colors: (
+  "primary": #d3ab9e,
+  "secondary": #ccc7bf,
+  "info": #3e96f4,
+  "warning": #edff1c,
+  "danger": #a20000,
+  "success": #085a35,
+);
+
+@import "../../node_modules/bootstrap/scss/bootstrap.scss";
+
+.flex {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sidebar {
+  width: 100%;
+  transition: 0.5s;
+}
+
+.sidebar .navigation p {
+  font-size: 12px;
+}
+
+.sidebar.inactive {
+  margin-left: -270px;
+}
+
+.sidebar-content .navigation a {
+  color: black !important;
+  border-radius: 10px;
+}
+
+.sidebar-content .navigation a:hover {
+  background-color: #00f0ff;
+}
+.sidebar-content .navigation a.active {
+  background-color: #00f0ff;
+}
+.login-wrapper {
+  height: 100vh;
+  background-image: url(../../public/assets/images/bg.png),
+    linear-gradient(to bottom, rgba(13, 206, 170, 0.5), rgba(36, 163, 140, 0.8));
+}
+
+.login-content {
+  height: 400px;
+  width: 360px;
+  background-color: white;
+  border-radius: 10px;
+}
