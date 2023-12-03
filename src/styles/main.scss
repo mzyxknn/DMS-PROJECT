@@ -1,11 +1,14 @@
 $theme-colors: (
-  "primary": #d3ab9e,
-  "secondary": #ccc7bf,
-  "info": #3e96f4,
+  "primary": #a1ca9d,
+  "secondary": #e9e9e9,
+  "dark": #000000,
+  "info": #3ef4b4,
   "warning": #edff1c,
   "danger": #a20000,
   "success": #085a35,
 );
+
+$info-color: map-get($theme-colors, "info");
 
 @import "../../node_modules/bootstrap/scss/bootstrap.scss";
 
@@ -34,10 +37,10 @@ $theme-colors: (
 }
 
 .sidebar-content .navigation a:hover {
-  background-color: #00f0ff;
+  background-color: $info-color;
 }
 .sidebar-content .navigation a.active {
-  background-color: #00f0ff;
+  background-color: $info-color;
 }
 .login-wrapper {
   height: 100vh;

@@ -26,6 +26,7 @@ import {
   query,
   where,
   or,
+  orderBy,
 } from "firebase/firestore";
 import { auth, db, storage } from "../../firebase";
 import BounceLoader from "react-spinners/BounceLoader";
@@ -35,7 +36,7 @@ import { useEffect, useRef, useState } from "react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { toast } from "react-toastify";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import LayoutUser from "../layout/layoutUser";
+import Layout from "../layout/layout";
 import Offcanvas from "react-bootstrap/Offcanvas";
 import ViewModal from "../components/viewModal";
 import PlaceHolder from "../components/placeholder";
@@ -45,6 +46,7 @@ import { Margin, Resolution, usePDF } from "react-to-pdf";
 const userCollectionRef = collection(db, "users");
 const messagesCollectionRef = collection(db, "messages");
 const incomingExternalRef = collection(db, "incoming-external");
+const outgoingExternalRef = collection(db, "outgoing-external");
 
 const currentDate = new Date();
 
@@ -57,7 +59,7 @@ const UserReports = () => {
   const [currentFilter, setCurrentFilter] = useState(null);
 
   const { toPDF, targetRef } = usePDF({
-    filename: "reports.pdf" + currentDate.toString(),
+    filename: "reports.pdf",
   });
 
   const fetchData = async () => {
@@ -98,7 +100,7 @@ const UserReports = () => {
         return user;
       }
     });
-    return user[0];
+    return user[0] ? user[0] : { fullName: "Deleted User" };
   };
 
   function toTitleCase(str) {
@@ -158,7 +160,29 @@ const UserReports = () => {
       );
       const querySnapshot = await getDocs(q);
       querySnapshot.forEach((doc) => {
-        messages.push({ ...doc.data(), id: doc.id });
+        const message = { ...doc.data(), id: doc.id };
+        if (
+          message.reciever == auth.currentUser.uid ||
+          message.sender == auth.currentUser.uid
+        ) {
+          messages.push(message);
+        }
+      });
+
+      const q2 = query(
+        outgoingExternalRef,
+        where("date", ">=", startTimestamp),
+        where("date", "<=", endTimestamp)
+      );
+      const querySnapshot2 = await getDocs(q2);
+      querySnapshot2.forEach((doc) => {
+        const message = { ...doc.data(), id: doc.id };
+        if (
+          message.reciever == auth.currentUser.uid ||
+          message.sender == auth.currentUser.uid
+        ) {
+          messages.push(message);
+        }
       });
     }
     setMessages(messages);
@@ -225,7 +249,7 @@ const UserReports = () => {
                   className="mb-3"
                 >
                   <option value="">Please select an option</option>
-
+                  <option value="">All Users</option>;
                   {users &&
                     users.map((user) => {
                       return (
@@ -258,7 +282,7 @@ const UserReports = () => {
   }, []);
 
   return (
-    <LayoutUser>
+    <Layout>
       <ReportToolsSidebar
         showTools={showTools}
         currentFilter={currentFilter}
@@ -329,6 +353,7 @@ const UserReports = () => {
                   <th>File Name</th>
                   <th>Sender</th>
                   <th>Subject</th>
+                  <th>Document Flow</th>
                   <th>Action</th>
                   <th>Date </th>
                   <th>Prioritization</th>
@@ -346,17 +371,31 @@ const UserReports = () => {
                         </div>
                       </td>
                       <td>{message.subject}</td>
-                      <td>{message.fileName}</td>
-
+                      <td
+                        style={{ cursor: "pointer" }}
+                        onClick={() => {
+                          setCurrentMessage(message);
+                          setShowViewModal(true);
+                        }}
+                      >
+                        <div
+                          style={{ textDecoration: "underline" }}
+                          className="text-dark fw-bold"
+                        >
+                          {message.fileName}
+                        </div>
+                      </td>
                       <td>
                         {getUser(message.sender).fullName} -
                         <b> {getUser(message.sender).position}</b>
                       </td>
 
                       <td>{message.subject}</td>
+                      <td>{message.documentFlow}</td>
+
                       <td>{message.action}</td>
                       {message.date && (
-                        <td>{moment(message.date.toDate()).format("LL")}</td>
+                        <td>{moment(message.date.toDate()).format("LLL")}</td>
                       )}
                       <td className="flex">
                         {" "}
@@ -372,7 +411,7 @@ const UserReports = () => {
                         </Badge>{" "}
                       </td>
                       <td>
-                        {message.status === "Recieved" && (
+                        {message.status === "Received" && (
                           <Badge bg="success" className="text-white p-2">
                             {message.status}
                           </Badge>
@@ -387,6 +426,11 @@ const UserReports = () => {
                             {message.status}
                           </Badge>
                         )}
+                        {message.status === "In Progress" && (
+                          <Badge bg="warning" className="text-black p-2">
+                            {message.status}
+                          </Badge>
+                        )}
                       </td>
                     </tr>
                   );
@@ -398,6 +442,8 @@ const UserReports = () => {
               <thead>
                 <tr>
                   <th>DocID</th>
+                  <th>Subject</th>
+                  <th>Document Flow</th>
                   <th>File Name</th>
                   <th>Sender</th>
                   <th>Required Action</th>
@@ -416,31 +462,66 @@ const UserReports = () => {
                           {message.code}
                         </div>
                       </td>
-                      <td>{message.fileName}</td>
-
+                      <td>{message.subject}</td>
+                      <td>{message.documentFlow}</td>
+                      <td
+                        style={{ cursor: "pointer" }}
+                        onClick={() => {
+                          setCurrentMessage(message);
+                          setShowViewModal(true);
+                        }}
+                      >
+                        <div
+                          style={{ textDecoration: "underline" }}
+                          className="text-info fw-bold"
+                        >
+                          {message.fileName}
+                        </div>
+                      </td>
                       <td>{message.sender} -</td>
                       <td>{message.action}</td>
 
                       {message.date && (
-                        <td>{moment(message.date.toDate()).format("LL")}</td>
+                        <td>{moment(message.date.toDate()).format("LLL")}</td>
                       )}
-                      <td className="flex">
-                        {" "}
-                        <Badge
-                          bg={
-                            message.prioritization == "urgent"
-                              ? "danger"
-                              : "info"
-                          }
-                          className="text-white p-2"
-                        >
-                          {toTitleCase(message.prioritization)}
-                        </Badge>{" "}
+                      <td>
+                        <div className="flex">
+                          {" "}
+                          <Badge
+                            bg={
+                              message.prioritization == "urgent"
+                                ? "danger"
+                                : "info"
+                            }
+                            className="text-white p-2"
+                          >
+                            {toTitleCase(message.prioritization)}
+                          </Badge>{" "}
+                        </div>
                       </td>
                       <td>
-                        <Badge bg="warning" className="text-black p-2">
-                          {message.status}
-                        </Badge>
+                        <div className="flex">
+                          {message.status === "Received" && (
+                            <Badge bg="success" className="text-white p-2">
+                              {message.status}
+                            </Badge>
+                          )}
+                          {message.status === "Pending" && (
+                            <Badge bg="info" className="text-white p-2">
+                              {message.status}
+                            </Badge>
+                          )}
+                          {message.status === "Rejected" && (
+                            <Badge bg="danger" className="text-white p-2">
+                              {message.status}
+                            </Badge>
+                          )}
+                          {message.status === "In Progress" && (
+                            <Badge bg="warning" className="text-black p-2">
+                              {message.status}
+                            </Badge>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -450,7 +531,7 @@ const UserReports = () => {
           )}
         </div>
       </div>
-    </LayoutUser>
+    </Layout>
   );
 };
 

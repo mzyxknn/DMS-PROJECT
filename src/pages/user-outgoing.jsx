@@ -64,6 +64,36 @@ const UserOutgoing = () => {
   const [deleteModal, setDeleteModal] = useState(false);
   const [offices, setOffices] = useState([]);
 
+  const [sort, setSort] = useState("a-z");
+  const [classificationData, setClassificationData] = useState([]);
+  const [subClassificationData, setSubClassificationData] = useState([]);
+  const [actionData, setActionData] = useState([]);
+
+  const sortData = () => {
+    const sortedData = [...messages].sort((a, b) => {
+      if (sort === "a-z") {
+        return a.subject.localeCompare(b.subject);
+      } else {
+        return b.subject.localeCompare(a.subject);
+      }
+    });
+
+    const sortedDataExternal = [...externalMessages].sort((a, b) => {
+      if (sort === "a-z") {
+        return a.subject.localeCompare(b.subject);
+      } else {
+        return b.subject.localeCompare(a.subject);
+      }
+    });
+
+    setMessages(sortedData);
+    setExternalMessages(sortedDataExternal);
+  };
+
+  useEffect(() => {
+    sortData();
+  }, [sort]);
+
   const getOfficeStatus = (id) => {
     const office = offices.filter((office) => {
       if (office.id == id) {
@@ -264,7 +294,7 @@ const UserOutgoing = () => {
     const handleSubmit = (fileUrl) => {
       let documentState = "Pending";
       if (currentPage == "external") {
-        documentState = "Recieved";
+        documentState = "Received";
       }
       if (!file) {
         documentState = "In Progress";
@@ -479,11 +509,10 @@ const UserOutgoing = () => {
                   className="mb-3"
                 >
                   <option>Please select an option</option>
-                  <option value="memorandum">Memorandum</option>
-                  <option value="letter">Letter</option>
-                  <option value="indorsement/transmittal">
-                    Indorsement/Transmittal
-                  </option>
+
+                  {classificationData.map((value) => {
+                    return <option value={value.value}>{value.value}</option>;
+                  })}
                 </Form.Select>
               </div>
               <div className="col-lg-6">
@@ -494,12 +523,9 @@ const UserOutgoing = () => {
                   className="mb-3"
                 >
                   <option>Please select an option</option>
-                  <option value="compliance">For Compliance</option>
-                  <option value="information">For Information</option>
-                  <option value="inquiry">Inquiry</option>
-                  <option value="invitation">Invitation</option>
-                  <option value="request">Request</option>
-                  <option value="others">Others</option>
+                  {subClassificationData.map((value) => {
+                    return <option value={value.value}>{value.value}</option>;
+                  })}
                 </Form.Select>
               </div>
               <div className="col-lg-6">
@@ -510,18 +536,9 @@ const UserOutgoing = () => {
                   className="mb-3"
                 >
                   <option>Please select an option</option>
-                  <option value="For Submission of Documents">
-                    For Submission of Documents
-                  </option>
-                  <option value="For Approval/Signature">
-                    For Approval/Signature
-                  </option>
-                  <option value="For Monitoring">For Monitoring</option>
-                  <option value="For Comment/Justification">
-                    For Comment/Justification
-                  </option>
-                  <option value="For Considilation">For Considilation</option>
-                  <option value="For Printing">For Printing</option>
+                  {actionData.map((value) => {
+                    return <option value={value.value}>{value.value}</option>;
+                  })}
                 </Form.Select>
               </div>
               <div className="col-lg-6">
@@ -694,6 +711,28 @@ const UserOutgoing = () => {
   const fetchData = async () => {
     setLoading(true);
 
+    onSnapshot(collection(db, "classification"), (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setClassificationData(output);
+    });
+    onSnapshot(collection(db, "sub-classification"), (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setSubClassificationData(output);
+    });
+    onSnapshot(collection(db, "action"), (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setActionData(output);
+    });
+
     //Offices
 
     onSnapshot(officeCollection, (snapshot) => {
@@ -755,7 +794,7 @@ const UserOutgoing = () => {
         return user;
       }
     });
-    return user[0];
+    return user[0] ? user[0] : { fullName: "Deleted User" };
   };
 
   function toTitleCase(str) {
@@ -793,6 +832,8 @@ const UserOutgoing = () => {
       return message;
     }
   });
+
+  console.log(enableSMS);
 
   return (
     <LayoutUser>
@@ -853,7 +894,7 @@ const UserOutgoing = () => {
         </div>
         <div className="dashboard-content mx-3 mt-3">
           <div className="row">
-            <div className="col-lg-7">
+            <div className="col-lg-5">
               <ListGroup horizontal>
                 <ListGroup.Item
                   className={`${
@@ -872,6 +913,20 @@ const UserOutgoing = () => {
                   External
                 </ListGroup.Item>
               </ListGroup>
+            </div>
+            <div className="col-lg-2">
+              <Button
+                className="mx-0 mx-lg-3 my-3"
+                onClick={() => {
+                  if (sort == "a-z") {
+                    setSort("z-a");
+                  } else {
+                    setSort("a-z");
+                  }
+                }}
+              >
+                Sort {sort}
+              </Button>
             </div>
             <div className="col-lg-5">
               <div className="search flex w-100 ">
@@ -922,7 +977,7 @@ const UserOutgoing = () => {
                       >
                         <div
                           style={{ textDecoration: "underline" }}
-                          className="text-info fw-bold"
+                          className="text-dark fw-bold"
                         >
                           {message.fileName}
                         </div>
@@ -959,7 +1014,7 @@ const UserOutgoing = () => {
                       </td>
                       <td>
                         <div className="flex">
-                          {message.status === "Recieved" && (
+                          {message.status === "Received" && (
                             <Badge bg="success" className="text-white p-2">
                               {message.status}
                             </Badge>
@@ -1018,10 +1073,22 @@ const UserOutgoing = () => {
                           </div>
                         </td>
                         <td>{message.subject}</td>
-                        <td>{message.fileName}</td>
+                        <td
+                          style={{ cursor: "pointer" }}
+                          onClick={() => {
+                            setCurrentMessage(message);
+                            setShowViewModal(true);
+                          }}
+                        >
+                          <div
+                            style={{ textDecoration: "underline" }}
+                            className="text-dark fw-bold"
+                          >
+                            {message.fileName}
+                          </div>
+                        </td>{" "}
                         <td>{message.reciever} -</td>
                         <td>{message.action}</td>
-
                         {message.date && (
                           <td>{moment(message.date.toDate()).format("LLL")}</td>
                         )}
@@ -1042,7 +1109,7 @@ const UserOutgoing = () => {
                         </td>
                         <td>
                           <div className="flex">
-                            {message.status === "Recieved" && (
+                            {message.status === "Received" && (
                               <Badge bg="success" className="text-white p-2">
                                 {message.status}
                               </Badge>

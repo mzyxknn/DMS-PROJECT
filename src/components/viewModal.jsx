@@ -127,11 +127,11 @@ function ViewModal(props) {
     const user = props.getUser(currentMessage.sender);
     const office = getOffice(user.office);
 
-    if (type == "Recieved") {
+    if (type == "Received") {
       addDoc(collection(db, "routing", currentMessage.id, currentMessage.id), {
         createdAt: serverTimestamp(),
         message: currentMessage,
-        status: "Recieved",
+        status: "Received",
       });
     } else {
       addDoc(collection(db, "routing", currentMessage.id, currentMessage.id), {
@@ -164,7 +164,7 @@ function ViewModal(props) {
 
         return;
       }
-      if (type == "Recieved") {
+      if (type == "Received") {
         const folderData = {
           owner: auth.currentUser.uid,
           isFolder: true,
@@ -209,6 +209,7 @@ function ViewModal(props) {
         fileUrl: url,
         fileName: file.name,
         status: "Pending",
+        remarks: remarks,
       });
       props.closeModal();
       props.resetCurrentMessage();
@@ -217,7 +218,7 @@ function ViewModal(props) {
       updateDoc(messageRef, {
         fileUrl: url,
         fileName: file.name,
-        status: "Recieved",
+        status: "Received",
       });
       props.closeModal();
     }
@@ -326,6 +327,7 @@ function ViewModal(props) {
                 <div className="form-wrapper">
                   <label htmlFor="">Required Action</label>
                   <input
+                    disabled
                     type="text"
                     className="form-control"
                     value={currentMessage.action}
@@ -336,6 +338,7 @@ function ViewModal(props) {
                 <div className="form-wrapper">
                   <label htmlFor="">Delivery Type</label>
                   <input
+                    disabled
                     type="text"
                     className="form-control"
                     value={currentMessage.deliverType}
@@ -346,6 +349,7 @@ function ViewModal(props) {
                 <div className="form-wrapper">
                   <label htmlFor="">Due Date</label>
                   <input
+                    disabled
                     type="text"
                     className="form-control"
                     value={currentMessage.dueDate}
@@ -387,30 +391,68 @@ function ViewModal(props) {
                 </div>
               )}
 
-              {currentMessage.status == "In Progress" && (
-                <div className="col-12 my-3 flex justify-content-start align-items-center">
-                  <div className="wrapper w-75">
-                    <label htmlFor="">Add file</label>
-                    <input
-                      accept=".pdf"
-                      onChange={(e) => setFile(e.target.files[0])}
-                      type="file"
-                      className="form-control"
-                    />
-                  </div>
+              {currentMessage.status == "In Progress" &&
+                auth.currentUser.uid == currentMessage.sender && (
+                  <div className="col-12 my-3 flex justify-content-start align-items-center">
+                    <div className="wrapper w-75">
+                      <label htmlFor="">Add file</label>
+                      <input
+                        accept=".pdf"
+                        onChange={(e) => setFile(e.target.files[0])}
+                        type="file"
+                        className="form-control"
+                      />
+                    </div>
 
-                  <button
-                    onClick={handleUpload}
-                    className="btn btn-primary  mb-0 mx-3"
-                  >
-                    {loading ? (
-                      <Spinner animation="border" variant="secondary" />
-                    ) : (
-                      "Upload File"
-                    )}
-                  </button>
-                </div>
-              )}
+                    <button
+                      onClick={handleUpload}
+                      className="btn btn-primary  mb-0 mx-3"
+                    >
+                      {loading ? (
+                        <Spinner animation="border" variant="secondary" />
+                      ) : (
+                        "Upload File"
+                      )}
+                    </button>
+                  </div>
+                )}
+              {currentMessage.status == "Rejected" &&
+                auth.currentUser.uid == currentMessage.sender &&
+                !props.dashboard && (
+                  <>
+                    <div className="col-12 my-3 flex justify-content-start align-items-center">
+                      <div className="wrapper w-75">
+                        <label htmlFor="">Add file</label>
+                        <input
+                          accept=".pdf"
+                          onChange={(e) => setFile(e.target.files[0])}
+                          type="file"
+                          className="form-control"
+                        />
+                      </div>
+                    </div>
+                    <div className="col-12">
+                      <label htmlFor="">Add remarks</label>
+                      <input
+                        onChange={(e) => setRemarks(e.target.value)}
+                        type="text"
+                        className="form-control"
+                      />
+                    </div>{" "}
+                    <div className="col-12 d-flex justify-content-end align-items-center my-2">
+                      <button
+                        onClick={handleUpload}
+                        className="btn btn-primary  mb-0 mx-3"
+                      >
+                        {loading ? (
+                          <Spinner animation="border" variant="secondary" />
+                        ) : (
+                          "Resend File"
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
             </div>
           </div>
           <div className="action mt-3">
@@ -424,12 +466,26 @@ function ViewModal(props) {
             )}
 
             <div className="content">
+              {currentMessage.reciever == auth.currentUser.uid && (
+                <div className="col-12 d-flex w-100 justify-content-center align-items-center">
+                  <div className="wrapper w-100">
+                    <label htmlFor="">Add remarks</label>
+                    <input
+                      onChange={(e) => setRemarks(e.target.value)}
+                      type="text"
+                      className="form-control"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="form-wrapper">
-                <label htmlFor="">Remarks</label>
+                <label htmlFor="">Document Remarks</label>
                 <textarea
-                  value={currentMessage.remarks}
+                  disabled
                   onChange={(e) => setRemarks(e.target.value)}
-                  rows={5}
+                  value={currentMessage.remarks}
+                  rows={4}
                   type="text"
                   className="form-control"
                 />
@@ -457,13 +513,13 @@ function ViewModal(props) {
                 <Button
                   disabled={!isDisable}
                   onClick={() => {
-                    setAction("Recieved");
+                    setAction("Received");
                     setConfirmation(true);
                   }}
                   className="w-100"
                   variant="primary"
                 >
-                  Recieved
+                  Received
                 </Button>
               </div>
             </div>

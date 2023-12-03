@@ -274,22 +274,28 @@ const Files = () => {
             </div>
           </div>
           <div className="col-lg-6 flex">
-            <AddFolder />
-            <AddFile />
-            <ListGroup horizontal>
-              <ListGroup.Item
-                className={`${view == "grid" ? "bg-secondary" : ""}`}
-                onClick={() => setView("grid")}
-              >
-                Grid VIew
-              </ListGroup.Item>
-              <ListGroup.Item
-                className={`${view == "list" ? "bg-secondary" : ""}`}
-                onClick={() => setView("list")}
-              >
-                List View
-              </ListGroup.Item>
-            </ListGroup>
+            <div className="row">
+              <div className="col-lg-6 flex justify-cotent-start align-items-center">
+                <AddFolder />
+                <AddFile />
+              </div>
+              <div className="col-lg-6 flex justify-cotent-start align-items-center my-3">
+                <ListGroup horizontal>
+                  <ListGroup.Item
+                    className={`${view == "grid" ? "bg-secondary" : ""}`}
+                    onClick={() => setView("grid")}
+                  >
+                    Grid VIew
+                  </ListGroup.Item>
+                  <ListGroup.Item
+                    className={`${view == "list" ? "bg-secondary" : ""}`}
+                    onClick={() => setView("list")}
+                  >
+                    List View
+                  </ListGroup.Item>
+                </ListGroup>
+              </div>
+            </div>
           </div>
           <div className="col-12 mx-3">
             <Breadcrumb>
@@ -364,16 +370,19 @@ const Files = () => {
             <tbody>
               {storages.map((storage) => {
                 return (
-                  <tr
-                    onClick={() => {
-                      setCurrentFolder(storage.name);
-                      fetchFolder(storage.name);
-                      if (storage.fileName) {
-                        downloadFile(storage.fileURL);
-                      }
-                    }}
-                  >
-                    <td>{storage.name || storage.fileName}</td>
+                  <tr>
+                    <td
+                      style={{ cursor: "pointer" }}
+                      onClick={() => {
+                        setCurrentFolder(storage.name);
+                        fetchFolder(storage.name);
+                        if (!storage.isFolder) {
+                          downloadFile(storage.fileURL);
+                        }
+                      }}
+                    >
+                      {storage.name || storage.fileName}
+                    </td>
                     {storage.createdAt && (
                       <td>
                         {moment(storage.createdAt.toDate()).format("LLL")}

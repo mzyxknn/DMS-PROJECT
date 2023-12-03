@@ -28,9 +28,9 @@ import {
 function DropdownAction({ message }) {
   const handleDelete = () => {
     try {
-      // const docRef = doc(db, "users", message.id);
-      // deleteDoc(docRef).then(() => toast.success("Successfully Deleted!"));
-      toast.info("You can't delete this user as of now, temporary unavailable");
+      const docRef = doc(db, "users", message.id);
+      deleteDoc(docRef).then(() => toast.success("Successfully Deleted!"));
+      // toast.info("You can't delete this user as of now, temporary unavailable");
     } catch (error) {
       toast.error(error.message);
     }
@@ -257,6 +257,7 @@ const CreateUser = () => {
               <th>User ID</th>
               <th>Full Name</th>
               <th>Email</th>
+              <th>Phone</th>
               <th>Position</th>
               <th>Office</th>
               <th>Gender</th>
@@ -274,6 +275,7 @@ const CreateUser = () => {
                   <td>{message.fullName}</td>
 
                   <td>{message.email}</td>
+                  <td>{message.phone}</td>
                   <td>{message.position ? message.position : "N/A"}</td>
                   {offices.length >= 1 && <td>{getOffice(message.office)}</td>}
 

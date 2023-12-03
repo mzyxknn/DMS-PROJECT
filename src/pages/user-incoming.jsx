@@ -65,6 +65,44 @@ const UserIncoming = () => {
   const [currentPage, setCurrentPage] = useState("internal");
   const [composeModalOpen, setComposeModalOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("a-z");
+
+  const handleSeen = async (message) => {
+    const docRef = doc(db, "routing", message.id, message.id, message.id);
+    const res = await getDoc(docRef);
+    if (!res.exists()) {
+      setDoc(docRef, {
+        createdAt: serverTimestamp(),
+        message: message,
+        status: "Seen",
+      });
+    }
+  };
+
+  const sortData = () => {
+    const sortedData = [...messages].sort((a, b) => {
+      if (sort === "a-z") {
+        return a.subject.localeCompare(b.subject);
+      } else {
+        return b.subject.localeCompare(a.subject);
+      }
+    });
+
+    const sortedDataExternal = [...externalMessages].sort((a, b) => {
+      if (sort === "a-z") {
+        return a.subject.localeCompare(b.subject);
+      } else {
+        return b.subject.localeCompare(a.subject);
+      }
+    });
+
+    setMessages(sortedData);
+    setExternalMessages(sortedDataExternal);
+  };
+
+  useEffect(() => {
+    sortData();
+  }, [sort]);
 
   function UrgentModal(props) {
     const urgentFiles = props.urgentFiles;
@@ -111,11 +149,12 @@ const UserIncoming = () => {
                           textDecoration: "underline",
                           cursor: "pointer",
                         }}
-                        className="text-info fw-bold"
+                        className="text-dark fw-bold"
                         onClick={() => {
                           setCurrentMessage(message);
                           setModalShow(true);
                           setUrgent(false);
+                          handleSeen(message);
                         }}
                       >
                         {message.fileName.substring(0, 20) + ".pdf"}
@@ -255,7 +294,7 @@ const UserIncoming = () => {
           attachmentDetail: attachmentDetail || null,
           fileUrl: fileUrl || null,
           fileName: file.name,
-          status: "Recieved",
+          status: "Received",
           createdAt: serverTimestamp(),
           isSendToALl: props.currentUser.uid === reciever,
         };
@@ -441,7 +480,6 @@ const UserIncoming = () => {
                   className="mb-3"
                 >
                   <option>Please select an option</option>
-                  <option value="Internal">Internal</option>
                   <option value="External">External</option>
                 </Form.Select>
               </div>
@@ -491,18 +529,6 @@ const UserIncoming = () => {
       deleteDoc(docRef).then(() => toast.success("Successfully Deleted!"));
     };
 
-    const handleSeen = async () => {
-      const docRef = doc(db, "routing", message.id, message.id, message.id);
-      const res = await getDoc(docRef);
-      if (!res.exists()) {
-        setDoc(docRef, {
-          createdAt: serverTimestamp(),
-          message: message,
-          status: "Seen",
-        });
-      }
-    };
-
     return (
       <Dropdown>
         <Dropdown.Toggle variant="secondary" id="dropdown-basic">
@@ -514,7 +540,7 @@ const UserIncoming = () => {
             onClick={() => {
               setModalShow(true);
               setCurrentMessage(message);
-              handleSeen();
+              handleSeen(message);
             }}
           >
             View Detail <FaEye />
@@ -644,7 +670,7 @@ const UserIncoming = () => {
         return user;
       }
     });
-    return user[0];
+    return user[0] ? user[0] : { fullName: "Deleted User" };
   };
 
   function toTitleCase(str) {
@@ -746,7 +772,7 @@ const UserIncoming = () => {
             )}
           </div>
           <div className="row">
-            <div className="col-lg-7">
+            <div className="col-lg-5">
               <ListGroup horizontal>
                 <ListGroup.Item
                   className={`${
@@ -765,6 +791,20 @@ const UserIncoming = () => {
                   External
                 </ListGroup.Item>
               </ListGroup>
+            </div>
+            <div className="col-lg-2">
+              <Button
+                className="mx-0 mx-lg-3 my-3"
+                onClick={() => {
+                  if (sort == "a-z") {
+                    setSort("z-a");
+                  } else {
+                    setSort("a-z");
+                  }
+                }}
+              >
+                Sort {sort}
+              </Button>
             </div>
             <div className="col-lg-5">
               <div className="search flex w-100 ">
@@ -811,11 +851,12 @@ const UserIncoming = () => {
                         onClick={() => {
                           setCurrentMessage(message);
                           setModalShow(true);
+                          handleSeen(message);
                         }}
                       >
                         <div
                           style={{ textDecoration: "underline" }}
-                          className="text-info fw-bold"
+                          className="text-dark fw-bold"
                         >
                           {message.fileName}
                         </div>
@@ -846,7 +887,7 @@ const UserIncoming = () => {
                       </td>
                       <td>
                         <div className="flex">
-                          {message.status === "Recieved" && (
+                          {message.status === "Received" && (
                             <Badge bg="success" className="text-white p-2">
                               {message.status}
                             </Badge>
@@ -904,8 +945,21 @@ const UserIncoming = () => {
                         </div>
                       </td>
                       <td>{message.subject}</td>
-                      <td>{message.fileName}</td>
-
+                      <td
+                        style={{ cursor: "pointer" }}
+                        onClick={() => {
+                          setCurrentMessage(message);
+                          setModalShow(true);
+                          handleSeen(message);
+                        }}
+                      >
+                        <div
+                          style={{ textDecoration: "underline" }}
+                          className="text-dark fw-bold"
+                        >
+                          {message.fileName}
+                        </div>
+                      </td>
                       <td>{message.sender} -</td>
                       <td>{message.action}</td>
                       {message.date && (
@@ -929,7 +983,7 @@ const UserIncoming = () => {
                       </td>
                       <td>
                         <div className="flex">
-                          {message.status === "Recieved" && (
+                          {message.status === "Received" && (
                             <Badge bg="success" className="text-white p-2">
                               {message.status}
                             </Badge>

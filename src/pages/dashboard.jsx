@@ -6,6 +6,7 @@ import {
   FaDownload,
   FaMap,
   FaFileArchive,
+  FaBell,
 } from "react-icons/fa";
 import ListGroup from "react-bootstrap/ListGroup";
 import Badge from "react-bootstrap/Badge";
@@ -46,9 +47,101 @@ const Dashboard = () => {
   const [filter, setFilter] = useState("all");
   const [deleteModal, setDeleteModal] = useState(false);
   const [showRouting, setShowRouting] = useState(false);
+  const [sort, setSort] = useState("a-z");
+  const [urgent, setUrgent] = useState(false);
+  const [urgentFiles, setUrgentFiles] = useState([]);
 
   const messagesCollectionRef = collection(db, "messages");
   const userCollectionRef = collection(db, "users");
+
+  function UrgentModal(props) {
+    const urgentFiles = props.urgentFiles;
+    return (
+      <Modal
+        {...props}
+        size="md"
+        aria-labelledby="contained-modal-title-vcenter"
+        centered
+      >
+        <Modal.Header closeButton className="bg-danger">
+          <Modal.Title id="contained-modal-title-vcenter"></Modal.Title>
+        </Modal.Header>
+        <Modal.Body
+          className="text-center"
+          style={{ height: "300px", overflow: "scroll" }}
+        >
+          <FaBell size={50} color={"gray"} />
+          <h3 className="fw-bold">Urgent Messages!</h3>
+          <p className="fw-italic">
+            The documents below needs your imediate response, please send a
+            response before the deadline
+          </p>
+          {urgentFiles && (
+            <Table bordered variant="white">
+              <thead>
+                <tr>
+                  <th>DocID</th>
+                  <th>Subject</th>
+                  <th>File Name</th>
+                  <th>Deadline</th>
+                </tr>
+              </thead>
+              <tbody>
+                {urgentFiles.map((message) => {
+                  return (
+                    <tr key={message.code}>
+                      <td>
+                        <div className="flex">
+                          <FaFile />
+                          {message.code}
+                        </div>
+                      </td>
+                      <td>{message.subject}</td>
+                      <td
+                        style={{
+                          textDecoration: "underline",
+                          cursor: "pointer",
+                        }}
+                        className="text-dark fw-bold"
+                        onClick={() => {
+                          setCurrentMessage(message);
+                          setShowViewModal(true);
+                          setUrgent(false);
+                          // handleSeen(message);
+                        }}
+                      >
+                        {message.fileName.substring(0, 20) + ".pdf"}
+                      </td>
+                      <td>{message.dueDate}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={props.onHide}>Close</Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
+
+  const sortData = () => {
+    const sortedData = [...messages].sort((a, b) => {
+      if (sort === "a-z") {
+        return a.subject.localeCompare(b.subject);
+      } else {
+        return b.subject.localeCompare(a.subject);
+      }
+    });
+
+    setMessages(sortedData);
+  };
+
+  useEffect(() => {
+    sortData();
+  }, [sort]);
 
   function DropdownAction({ message }) {
     const downloadFIle = () => {
@@ -127,9 +220,21 @@ const Dashboard = () => {
       q,
       (querySnapshot) => {
         const messages = [];
+        const urgents = [];
         querySnapshot.forEach((doc) => {
-          messages.push({ ...doc.data(), id: doc.id });
+          const message = { ...doc.data(), id: doc.id };
+          messages.push(message);
+          if (
+            message.prioritization == "urgent" &&
+            message.status == "Pending"
+          ) {
+            urgents.push(message);
+          }
         });
+        if (urgents.length >= 1) {
+          setUrgent(true);
+        }
+        setUrgentFiles(urgents);
         setMessages(messages);
       },
       (error) => {
@@ -158,7 +263,7 @@ const Dashboard = () => {
       }
     });
 
-    return user[0];
+    return user[0] ? user[0] : { fullName: "Deleted User" };
   };
 
   function toTitleCase(str) {
@@ -167,9 +272,9 @@ const Dashboard = () => {
     });
   }
 
-  const allRecieved = () => {
+  const allReceived = () => {
     const output = messages.filter((message) => {
-      if (message.status == "Recieved") {
+      if (message.status == "Received") {
         return message;
       }
     });
@@ -243,6 +348,13 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="dashboard">
+        {messages && (
+          <UrgentModal
+            show={urgent}
+            onHide={() => setUrgent(false)}
+            urgentFiles={urgentFiles}
+          />
+        )}
         {currentMessage && (
           <ViewModal
             getUser={getUserData}
@@ -311,7 +423,7 @@ const Dashboard = () => {
           </div>
 
           <div className="row">
-            <div className="col-lg-6 d-flex my-2 my-lg-0">
+            <div className="col-lg-3 d-flex my-2 my-lg-0">
               <ListGroup horizontal>
                 <ListGroup.Item
                   className={`${filter == "all" ? "bg-secondary" : ""}`}
@@ -320,10 +432,10 @@ const Dashboard = () => {
                   All <Badge bg="primary">{messages.length}</Badge>
                 </ListGroup.Item>
                 <ListGroup.Item
-                  className={`${filter == "recieved" ? "bg-secondary" : ""}`}
-                  onClick={() => setFilter("recieved")}
+                  className={`${filter == "Received" ? "bg-secondary" : ""}`}
+                  onClick={() => setFilter("Received")}
                 >
-                  Recieved <Badge bg="primary">{allRecieved()}</Badge>
+                  Received <Badge bg="primary">{allReceived()}</Badge>
                 </ListGroup.Item>
                 <ListGroup.Item
                   className={`${filter == "rejected" ? "bg-secondary" : ""}`}
@@ -332,6 +444,20 @@ const Dashboard = () => {
                   Rejected <Badge bg="danger">{allRejected()}</Badge>{" "}
                 </ListGroup.Item>
               </ListGroup>
+            </div>
+            <div className="col-lg-3">
+              <Button
+                className="mx-0 mx-lg-3"
+                onClick={() => {
+                  if (sort == "a-z") {
+                    setSort("z-a");
+                  } else {
+                    setSort("a-z");
+                  }
+                }}
+              >
+                Sort {sort}
+              </Button>
             </div>
             <div className="col-lg-6 flex my-2 my-lg-0">
               <div className="search flex w-100 ">
@@ -355,6 +481,7 @@ const Dashboard = () => {
                   <th>DocID</th>
                   <th>Subject</th>
                   <th>File Name</th>
+                  <th>Document Flow</th>
                   <th>Sender</th>
                   <th>Reciever</th>
                   <th>Date </th>
@@ -383,11 +510,12 @@ const Dashboard = () => {
                       >
                         <div
                           style={{ textDecoration: "underline" }}
-                          className="text-info fw-bold"
+                          className="text-dark fw-bold"
                         >
                           {message.fileName}
                         </div>
                       </td>
+                      <td>{message.documentFlow}</td>
                       <td>
                         {getUserData(message.sender).fullName} -{" "}
                         <b> {getUserData(message.sender).position}</b>
@@ -422,7 +550,7 @@ const Dashboard = () => {
                       </td>
                       <td>
                         <div className="flex">
-                          {message.status === "Recieved" && (
+                          {message.status === "Received" && (
                             <Badge bg="success" className="text-white p-2">
                               {message.status}
                             </Badge>
