@@ -218,7 +218,6 @@ const UserIncoming = () => {
         sender &&
         reciever &&
         subject &&
-        description &&
         prioritization &&
         classification &&
         subClassification &&
@@ -379,7 +378,7 @@ const UserIncoming = () => {
               className="mb-3"
               controlId="exampleForm.ControlTextarea1"
             >
-              <Form.Label>Description</Form.Label>
+              <Form.Label>{"Description (Optional)"}</Form.Label>
               <Form.Control
                 onChange={(e) => setDescription(e.target.value)}
                 as="textarea"
@@ -475,13 +474,13 @@ const UserIncoming = () => {
               <div className="col-lg-6">
                 <Form.Label>Document Flow</Form.Label>
 
-                <Form.Select
+                <Form.Control
+                  type="text"
                   onChange={(e) => setDocumentFlow(e.target.value)}
                   className="mb-3"
-                >
-                  <option>Please select an option</option>
-                  <option value="External">External</option>
-                </Form.Select>
+                  defaultValue="External"
+                  disabled
+                />
               </div>
             </div>
             <div className="title bg-primary w-100">

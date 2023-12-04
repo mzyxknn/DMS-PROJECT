@@ -157,7 +157,6 @@ const UserOutgoing = () => {
         code &&
         reciever &&
         subject &&
-        description &&
         prioritization &&
         classification &&
         subClassification &&
@@ -481,7 +480,7 @@ const UserOutgoing = () => {
               className="mb-3"
               controlId="exampleForm.ControlTextarea1"
             >
-              <Form.Label>Description</Form.Label>
+              <Form.Label>{"Description (Optional)"}</Form.Label>
               <Form.Control
                 onChange={(e) => setDescription(e.target.value)}
                 as="textarea"
@@ -563,18 +562,15 @@ const UserOutgoing = () => {
               </div>
               <div className="col-lg-6">
                 <Form.Label>Document Flow</Form.Label>
-
-                <Form.Select
+                <Form.Control
+                  type="text"
                   onChange={(e) => setDocumentFlow(e.target.value)}
                   className="mb-3"
-                >
-                  <option>Please select an option</option>
-                  {currentPage == "internal" ? (
-                    <option value="Internal">Internal</option>
-                  ) : (
-                    <option value="External">External</option>
-                  )}
-                </Form.Select>
+                  defaultValue={
+                    currentPage === "internal" ? "Internal" : "External"
+                  }
+                  disabled
+                />
               </div>
             </div>
             <div className="title bg-primary w-100">
