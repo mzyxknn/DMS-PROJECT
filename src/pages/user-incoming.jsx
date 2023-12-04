@@ -40,7 +40,6 @@ import { useEffect, useRef, useState } from "react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { toast } from "react-toastify";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import Layout from "../layout/layout";
 import UserLayout from "../layout/layoutUser";
 import ViewModal from "../components/viewModal";
 import Offcanvas from "react-bootstrap/Offcanvas";

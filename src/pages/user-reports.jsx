@@ -36,12 +36,12 @@ import { useEffect, useRef, useState } from "react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { toast } from "react-toastify";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import Layout from "../layout/layout";
 import Offcanvas from "react-bootstrap/Offcanvas";
 import ViewModal from "../components/viewModal";
 import PlaceHolder from "../components/placeholder";
 import moment from "moment";
 import { Margin, Resolution, usePDF } from "react-to-pdf";
+import LayoutUser from "../layout/layoutUser";
 
 const userCollectionRef = collection(db, "users");
 const messagesCollectionRef = collection(db, "messages");
@@ -67,10 +67,10 @@ const UserReports = () => {
     const snapshot = await getDocs(userCollectionRef);
     const output = snapshot.docs.map((doc) => {
       return { id: doc.id, ...doc.data() };
+
     });
 
     setUsers(output);
-
     onSnapshot(
       messagesCollectionRef,
       (querySnapshot) => {
@@ -282,7 +282,7 @@ const UserReports = () => {
   }, []);
 
   return (
-    <Layout>
+    <LayoutUser>
       <ReportToolsSidebar
         showTools={showTools}
         currentFilter={currentFilter}
@@ -531,7 +531,7 @@ const UserReports = () => {
           )}
         </div>
       </div>
-    </Layout>
+    </LayoutUser>
   );
 };
 

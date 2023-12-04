@@ -21,13 +21,15 @@ const Layout = ({ children }) => {
   const [show, setShow] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
 
+
   const getUser = async () => {
-    const userRef = doc(db, "users", auth.currentUser.uid);
-    const snapshot = await getDoc(userRef);
-    setUser({ ...snapshot.data(), id: snapshot.id });
+    if (auth.currentUser) {
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      const snapshot = await getDoc(userRef);
+      setUser({ ...snapshot.data(), id: snapshot.id });
+    }
   };
   const navigation = useNavigate();
-
   const handleLogout = () => {
     signOut(auth);
     navigation("/");
