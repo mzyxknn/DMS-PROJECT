@@ -417,18 +417,17 @@ const UserOutgoing = () => {
             </Form.Group>
             <Form.Label>Sender</Form.Label>
 
-            <Form.Select className="mb-3">
-              {users &&
-                users.map((user) => {
-                  if (user.id == props.currentUser.uid) {
-                    return (
-                      <option key={user.userID} value={user.id}>
-                        {user.fullName}{" "}
-                      </option>
-                    );
-                  }
-                })}
-            </Form.Select>
+            <Form.Control
+              type="text"
+              value={
+                (users &&
+                  users.find((user) => user.id === props.currentUser.uid)
+                    ?.fullName) ||
+                ""
+              }
+              className="mb-3"
+              disabled
+            />
             <Form.Label>Reciever</Form.Label>
 
             {currentPage == "internal" && (
@@ -587,7 +586,7 @@ const UserOutgoing = () => {
                 <Form.Control
                   onChange={(e) => setFile(e.target.files[0])}
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 />
               </Form.Group>
             </Form.Group>

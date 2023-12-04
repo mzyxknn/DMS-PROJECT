@@ -19,31 +19,36 @@ import { toast } from "react-toastify";
 import moment from "moment";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
-function ViewFile(props) {
-  const [show, setShow] = useState(false);
+function ViewFile({ file }) {
+  const openInNewTab = () => {
+    const newWindow = window.open();
+    newWindow.location.href = file;
+  };
 
-  const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
+  const handleView = () => {
+    if (isPDF()) {
+      openInNewTab();
+    } else {
+      downloadFile();
+    }
+  };
+
+  const isPDF = () => file.toLowerCase().endsWith('.pdf');
+
+  const downloadFile = () => {
+    const link = document.createElement('a');
+    link.href = file;
+    link.download = file.split('/').pop();
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <>
-      <button onClick={handleShow} className="btn btn-primary mx-3 px-3 flex">
+      <button onClick={handleView} className="btn btn-primary mx-3 px-3 flex">
         View <FaEye className="mx-1" />
       </button>
-
-      <Modal size="lg" show={show} onHide={handleClose}>
-        <Modal.Header className="bg-primary" closeButton>
-          <Modal.Title>File</Modal.Title>
-        </Modal.Header>
-        <ModalBody>
-          <iframe
-            style={{ height: "80vh" }}
-            src={props.file}
-            width={"100%"}
-            frameborder="0"
-          ></iframe>
-        </ModalBody>
-      </Modal>
     </>
   );
 }
@@ -395,9 +400,9 @@ function ViewModal(props) {
                 auth.currentUser.uid == currentMessage.sender && (
                   <div className="col-12 my-3 flex justify-content-start align-items-center">
                     <div className="wrapper w-75">
-                      <label htmlFor="">Add file</label>
+                      <label htmlFor="">Add File</label>
                       <input
-                        accept=".pdf"
+                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         onChange={(e) => setFile(e.target.files[0])}
                         type="file"
                         className="form-control"
@@ -422,12 +427,12 @@ function ViewModal(props) {
                   <>
                     <div className="col-12 my-3 flex justify-content-start align-items-center">
                       <div className="wrapper w-75">
-                        <label htmlFor="">Add file</label>
+                        <label htmlFor="">Upload new file</label>
                         <input
-                          accept=".pdf"
                           onChange={(e) => setFile(e.target.files[0])}
                           type="file"
                           className="form-control"
+                          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         />
                       </div>
                     </div>
@@ -447,7 +452,7 @@ function ViewModal(props) {
                         {loading ? (
                           <Spinner animation="border" variant="secondary" />
                         ) : (
-                          "Resend File"
+                          "Upload File"
                         )}
                       </button>
                     </div>

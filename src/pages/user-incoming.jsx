@@ -497,7 +497,7 @@ const UserIncoming = () => {
                 <Form.Control
                   onChange={(e) => setFile(e.target.files[0])}
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 />
               </Form.Group>
             </Form.Group>
