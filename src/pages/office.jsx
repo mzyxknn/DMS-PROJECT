@@ -229,9 +229,22 @@ const Office = () => {
     } catch (error) {}
   };
 
-  const addValue = (attr, value) => {
-    const col = collection(db, attr);
-    addDoc(col, { value: value });
+  const addValue = async (attr, value) => {
+    try {
+      const col = collection(db, attr);
+      await addDoc(col, { value: value });
+  
+    
+      if (attr === "classification") {
+        setClassification("");
+      } else if (attr === "sub-classification") {
+        setSubClassification("");
+      } else if (attr === "action") {
+        setAction("");
+      }
+    } catch (error) {
+      console.error("Error adding value:", error);
+    }
   };
 
   const handleDeleteValue = (attr, value) => {
@@ -383,9 +396,11 @@ const Office = () => {
               <div className="row mt-3">
                 <div className="col-lg-6">
                   <input
+                    name="classification"
                     onChange={(e) => setClassification(e.target.value)}
                     type="text"
                     className="form-control mx-3"
+                    value={classification}
                   />
                 </div>
                 <div className="col-lg-6">
@@ -431,9 +446,11 @@ const Office = () => {
               <div className="row mt-3">
                 <div className="col-lg-6">
                   <input
+                    name="sub-classification"
                     onChange={(e) => setSubClassification(e.target.value)}
                     type="text"
                     className="form-control mx-3"
+                    value={subClassification}
                   />
                 </div>
                 <div className="col-lg-6">
@@ -479,9 +496,11 @@ const Office = () => {
               <div className="row mt-3">
                 <div className="col-lg-6">
                   <input
+                    name="action"
                     onChange={(e) => setAction(e.target.value)}
                     type="text"
                     className="form-control mx-3"
+                    value={action}
                   />
                 </div>
                 <div className="col-lg-6">
