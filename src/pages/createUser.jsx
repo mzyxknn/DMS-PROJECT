@@ -25,29 +25,65 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
+function DeleteModal({ showModal, handleClose, handleDelete }) {
+  return (
+    <Modal show={showModal} onHide={handleClose}>
+      <Modal.Header closeButton>
+        <Modal.Title>Delete Confirmation</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>Are you sure you want to continue?</Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={handleClose}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={handleDelete}>
+          Delete
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
 function DropdownAction({ message }) {
+  const [deleteModal, setDeleteModal] = useState(false);
+
   const handleDelete = () => {
     try {
       const docRef = doc(db, "users", message.id);
-      deleteDoc(docRef).then(() => toast.success("Successfully Deleted!"));
-      // toast.info("You can't delete this user as of now, temporary unavailable");
+      deleteDoc(docRef).then(() => {
+        toast.success("Successfully Deleted!");
+        // Close the modal after successful deletion
+        setDeleteModal(false);
+      });
     } catch (error) {
       toast.error(error.message);
     }
   };
 
-  return (
-    <Dropdown>
-      <Dropdown.Toggle variant="secondary" id="dropdown-basic">
-        <img src="./assets/images/pepicons-pencil_dots-y.png" alt="" />
-      </Dropdown.Toggle>
+  const openModal = () => setDeleteModal(true);
+  const closeModal = () => setDeleteModal(false);
 
-      <Dropdown.Menu>
-        <Dropdown.Item onClick={handleDelete}>
-          Delete <FaTrash />
-        </Dropdown.Item>
-      </Dropdown.Menu>
-    </Dropdown>
+  return (
+    <div>
+      <Dropdown>
+        <Dropdown.Toggle variant="secondary" id="dropdown-basic">
+          <img src="./assets/images/pepicons-pencil_dots-y.png" alt="" />
+        </Dropdown.Toggle>
+
+        <Dropdown.Menu>
+          <Dropdown.Item onClick={openModal}>
+            Delete <FaTrash />
+          </Dropdown.Item>
+        </Dropdown.Menu>
+      </Dropdown>
+
+      {/* Delete Modal */}
+      <DeleteModal
+        showModal={deleteModal}
+        handleClose={closeModal}
+        handleDelete={handleDelete}
+      />
+    </div>
   );
 }
 
