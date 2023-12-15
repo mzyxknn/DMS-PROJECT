@@ -22,11 +22,41 @@ import { toast } from "react-toastify";
 import moment from "moment";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
+
+
 function ViewFile(props) {
   const [show, setShow] = useState(false);
 
   const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
+  const handleShow = () => {
+    // Extract the file extension
+    const cleanedFileUrl = props.file.split('?')[0];
+
+    // Extract the file extension
+    const fileExtension = cleanedFileUrl.split('.').pop();
+
+    console.log('File URL:', fileExtension);
+
+    if (fileExtension.toLowerCase() !== 'pdf') {
+      // If the file is not a PDF, show a toast message and return
+      handleDownload();
+      toast.info('File type: '+ fileExtension + ' not available for viewing. Download initiated.');
+      return;
+    }
+
+    // Remove query parameters and additional text after the extension
+    setShow(true);
+  };
+  const handleDownload = () => {
+    // You can customize the download behavior here
+    // Example: Triggering download using an invisible link
+    const link = document.createElement('a');
+    link.href = props.file;
+    link.download = 'downloaded_file'; // You can set the desired file name
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <>
