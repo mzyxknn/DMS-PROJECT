@@ -521,7 +521,7 @@ const Dashboard = () => {
                   <th>File Name</th>
                   <th>Document Flow</th>
                   <th>Sender</th>
-                  <th>Reciever</th>
+                  <th>Receiver</th>
                   <th>Date </th>
                   <th>Prioritization</th>
                   <th>Status</th>

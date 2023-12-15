@@ -22,36 +22,31 @@ import { toast } from "react-toastify";
 import moment from "moment";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
-function ViewFile({ file }) {
-  const openInNewTab = () => {
-    const newWindow = window.open();
-    newWindow.location.href = file;
-  };
+function ViewFile(props) {
+  const [show, setShow] = useState(false);
 
-  const handleView = () => {
-    if (isPDF()) {
-      openInNewTab();
-    } else {
-      downloadFile();
-    }
-  };
-
-  const isPDF = () => file.toLowerCase().endsWith(".pdf");
-
-  const downloadFile = () => {
-    const link = document.createElement("a");
-    link.href = file;
-    link.download = file.split("/").pop();
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
 
   return (
     <>
-      <button onClick={handleView} className="btn btn-primary mx-3 px-3 flex">
+      <button onClick={handleShow} className="btn btn-primary mx-3 px-3 flex">
         View <FaEye className="mx-1" />
       </button>
+
+      <Modal size="lg" show={show} onHide={handleClose}>
+        <Modal.Header className="bg-primary" closeButton>
+          <Modal.Title>File</Modal.Title>
+        </Modal.Header>
+        <ModalBody>
+          <iframe
+            style={{ height: "100vh" }}
+            src={props.file}
+            width={"100%"}
+            frameborder="0"
+          ></iframe>
+        </ModalBody>
+      </Modal>
     </>
   );
 }

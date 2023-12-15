@@ -440,7 +440,7 @@ const Outgoing = () => {
         ) : (
           <Modal.Body>
             <div className="title bg-primary w-100">
-              <h5 className="text-white mx-3 p-2 my-3">Details</h5>
+              <h5 className="text-white mx-3 p-2 my-3">Document Details</h5>
             </div>
             <Form.Label>Document Code</Form.Label>
 
@@ -665,7 +665,7 @@ const Outgoing = () => {
               <h5 className="text-white mx-3 p-2 my-3">Attachments</h5>
             </div>
             <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
-              <Form.Label>Details</Form.Label>
+              <Form.Label>Attachment Details</Form.Label>
               <Form.Control
                 onChange={(e) => setAttachmentDetail(e.target.value)}
                 type="text"
@@ -694,7 +694,7 @@ const Outgoing = () => {
                 }
               }}
             >
-              Send Message
+              Send Document
             </Button>
           )}
 
@@ -1052,7 +1052,7 @@ const Outgoing = () => {
                   <th>DocID</th>
                   <th>Subject</th>
                   <th>File Name</th>
-                  <th>Reciever</th>
+                  <th>Receiver</th>
                   <th>Required Action</th>
                   <th>Date </th>
                   <th>Prioritization</th>

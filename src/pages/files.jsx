@@ -33,7 +33,7 @@ const Files = () => {
   const [currentFolder, setCurrentFolder] = useState("files");
   const [loading, setLoading] = useState(false);
   const [offices, setOffices] = useState([]);
-  const [view, setView] = useState("grid");
+  const [view, setView] = useState("list");
   const [sort, setSort] = useState("a-z");
 
   const sortData = () => {
@@ -289,27 +289,12 @@ const Files = () => {
                 <AddFolder />
                 <AddFile />
               </div>
-              <div className="col-lg-6 flex justify-cotent-start align-items-center my-3">
-                <ListGroup horizontal>
-                  <ListGroup.Item
-                    className={`${view == "grid" ? "bg-secondary" : ""}`}
-                    onClick={() => setView("grid")}
-                  >
-                    Grid VIew
-                  </ListGroup.Item>
-                  <ListGroup.Item
-                    className={`${view == "list" ? "bg-secondary" : ""}`}
-                    onClick={() => setView("list")}
-                  >
-                    List View
-                  </ListGroup.Item>
-                </ListGroup>
-              </div>
+
             </div>
             <ListGroup.Item style={{ border: "none" }}>
               <Button
                 onClick={() => {
-                  if (sort == "a-z") {
+                  if (sort === "a-z") {
                     setSort("z-a");
                   } else {
                     setSort("a-z");
@@ -323,114 +308,61 @@ const Files = () => {
           <div className="col-12 mx-3">
             <Breadcrumb>
               <Breadcrumb.Item onClick={fetchData}>Files</Breadcrumb.Item>
-
               <Breadcrumb.Item active>
                 {currentFolder === "files" ? "" : currentFolder}
               </Breadcrumb.Item>
             </Breadcrumb>
           </div>
         </div>
-
+  
         {loading && (
           <div className="flex flex-column">
             <h3>Uploading file...</h3>
             <BarLoader />
           </div>
         )}
-
-        {view == "grid" ? (
-          <div className="row mt-5">
-            {storage &&
-              storages.map((storage) => {
-                return (
-                  <>
-                    {storage.isFolder ? (
-                      <div className="col-6 col-md-4 col-lg-3 flex flex-column">
-                        <img
-                          src={"./assets/images/folder.png"}
-                          alt=""
-                          width={"200px"}
-                          onClick={() => {
-                            setCurrentFolder(storage.fileName);
-                            fetchFolder(storage.fileName);
-                          }}
-                          style={{ cursor: "pointer" }}
-                        />
-                        <div className="flex justify-content-around">
-                          <div className="mx-3">{storage.fileName}</div>
-                          <DropdownAction storage={storage} />
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div
-                          key={storage.id}
-                          className="col-6 col-md-4 col-lg-3 flex flex-column"
-                        >
-                          <iframe
-                            style={{ width: "100%", height: "200px" }}
-                            src={storage.fileURL}
-                            scrolling="no"
-                            sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-modals allow-orientation-lock allow-pointer-lock"
-                            allow="clipboard-write; display-capture;"
-                          ></iframe>
-
-                          <div className="flex justify-content-around">
-                            <div className="mx-3">{storage.fileName}</div>
-                            <DropdownAction storage={storage} />
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </>
-                );
-              })}
-          </div>
-        ) : (
-          <Table responsive="md" variant="white">
-            <thead>
-              <tr>
-                <th>File Name</th>
-                <th>Date</th>
-                <th>Action</th>
+  
+        <Table responsive="md" variant="white">
+          <thead>
+            <tr>
+              <th>File Name</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {storages.map((storage) => (
+              <tr key={storage.id}>
+                <td
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    if (storage.isFolder) {
+                      setCurrentFolder(storage.fileName);
+                      fetchFolder(storage.fileName);
+                    }
+                    if (!storage.isFolder) {
+                      downloadFile(storage.fileURL);
+                    }
+                  }}
+                >
+                  {storage.fileName}
+                </td>
+                {storage.createdAt && (
+                  <td>
+                    {moment(storage.createdAt.toDate()).format("LLL")}
+                  </td>
+                )}
+                <td>
+                  <DropdownAction storage={storage} />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {storages.map((storage) => {
-                return (
-                  <tr>
-                    <td
-                      style={{ cursor: "pointer" }}
-                      onClick={() => {
-                        if (storage.isFolder) {
-                          setCurrentFolder(storage.fileName);
-                          fetchFolder(storage.fileName);
-                        }
-                        if (!storage.isFolder) {
-                          downloadFile(storage.fileURL);
-                        }
-                      }}
-                    >
-                      {storage.fileName}
-                    </td>
-                    {storage.createdAt && (
-                      <td>
-                        {moment(storage.createdAt.toDate()).format("LLL")}
-                      </td>
-                    )}
-                    <td>
-                      {" "}
-                      <DropdownAction storage={storage} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        )}
+            ))}
+          </tbody>
+        </Table>
       </div>
     </Layout>
   );
+  
 };
 
 export default Files;
