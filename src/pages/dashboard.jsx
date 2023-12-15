@@ -112,7 +112,7 @@ const Dashboard = () => {
                           // handleSeen(message);
                         }}
                       >
-                        {message.fileName.substring(0, 20) + ".pdf"}
+                        {message.fileName}
                       </td>
                       <td>{message.dueDate}</td>
                     </tr>
@@ -469,6 +469,7 @@ const Dashboard = () => {
                   <Form.Select
                     aria-label="Default select example"
                     onChange={(e) => setCurrentClassification(e.target.value)}
+                    
                   >
                     <option key={0} value={""}>
                       Please select classification

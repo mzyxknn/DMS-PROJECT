@@ -266,7 +266,7 @@ const UserFiles = () => {
       fetchData();
     }
   }, []);
-
+  const tableHeadLabel = currentFolder === 'files' ? 'Folders' : 'Files';
   return (
     <LayoutUser>
       <div className="files-wrapper">
@@ -323,9 +323,10 @@ const UserFiles = () => {
       )}
 
       <Table responsive="md" variant="white">
+
         <thead>
           <tr>
-            <th>File Name</th>
+            <th>{tableHeadLabel}</th>
             <th>Date</th>
             <th>Action</th>
           </tr>

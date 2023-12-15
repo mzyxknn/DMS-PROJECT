@@ -206,19 +206,18 @@ const Routing = (props) => {
                         )}
                         {route.status == "Received" && (
                           <p style={{ fontSize: "13px", fontStyle: "italic" }}>
-                            your document has been seen successfully Received by
-                            the reciever
+                            your document has been successfully Received
                           </p>
                         )}
                         {route.status == "Rejected" && (
                           <p style={{ fontSize: "13px", fontStyle: "italic" }}>
-                            your document has been seen rejected by the reciever
+                            your document has been seen Rejected
                           </p>
                         )}
 
                         {route.status == "Pending" && (
                           <p style={{ fontSize: "13px", fontStyle: "italic" }}>
-                            your document is has been sent, waiting for action
+                            your document has been sent, waiting for action
                           </p>
                         )}
                       </div>

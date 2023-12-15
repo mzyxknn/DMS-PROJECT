@@ -65,15 +65,20 @@ const incoming = () => {
   const [composeModalOpen, setComposeModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("a-z");
+  const [currentClassification, setCurrentClassification] = useState("");
+  const [classificationData, setClassificationData] = useState([]);
+
 
   const handleSeen = async (message) => {
     const docRef = doc(db, "routing", message.id, message.id, message.id);
+    const seener = getUser(auth.currentUser.uid).fullName;
     const res = await getDoc(docRef);
     if (!res.exists()) {
       setDoc(docRef, {
         createdAt: serverTimestamp(),
         message: message,
         status: "Seen",
+        seener: seener
       });
     }
   };
@@ -156,7 +161,7 @@ const incoming = () => {
                           handleSeen(message);
                         }}
                       >
-                        {message.fileName.substring(0, 20) + ".pdf"}
+                        {message.fileName}
                       </td>
                       <td>{message.dueDate}</td>
                     </tr>
@@ -478,7 +483,7 @@ const incoming = () => {
                   onChange={(e) => setDocumentFlow(e.target.value)}
                   className="mb-3"
                   defaultValue="External"
-                  disabled
+                  readOnly
                 />
               </div>
             </div>
@@ -496,7 +501,7 @@ const incoming = () => {
                 <Form.Control
                   onChange={(e) => setFile(e.target.files[0])}
                   type="file"
-                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  accept=".pdf,.docx"
                 />
               </Form.Group>
             </Form.Group>
@@ -612,6 +617,15 @@ const incoming = () => {
     });
 
     setUsers(output);
+    
+    onSnapshot(collection(db, "classification"), (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setClassificationData(output);
+    });
+
     const q = query(messagesCollectionRef, orderBy("createdAt", "desc"));
 
     onSnapshot(
@@ -644,7 +658,9 @@ const incoming = () => {
         console.error("Error listening to collection:", error);
       }
     );
+
     const q2 = query(incomingExternalRef, orderBy("createdAt", "desc"));
+
     onSnapshot(q2, (snapshot) => {
       const messages = [];
       snapshot.docs.forEach((doc) => {
@@ -700,6 +716,24 @@ const incoming = () => {
       reciever.fullName.toLowerCase().startsWith(search.toLowerCase()) ||
       message.subject.toLowerCase().startsWith(search.toLocaleLowerCase())
     ) {
+      return message;
+    }
+  });
+
+
+  const classificationFilteredInternal = filteredMessages.filter((message) => {
+    if (currentClassification == "") {
+      return message;
+    }
+    if (message.classification == currentClassification) {
+      return message;
+    }
+  });
+  const classificationFilteredExternal = filteredExternalMessages.filter((message) => {
+    if (currentClassification == "") {
+      return message;
+    }
+    if (message.classification == currentClassification) {
       return message;
     }
   });
@@ -786,7 +820,25 @@ const incoming = () => {
                 >
                   External
                 </ListGroup.Item>
+                <ListGroup.Item style={{ border: "none" }}>
+                  <Form.Select
+                    aria-label="Default select example"
+                    onChange={(e) => setCurrentClassification(e.target.value)}
+                  >
+                    <option key={0} value={""}>
+                      Please select classification
+                    </option>{" "}
+                    {classificationData.map((item) => {
+                      return (
+                        <option key={item.value} value={item.value}>
+                          {item.value}
+                        </option>
+                      );
+                    })}
+                  </Form.Select>
+                </ListGroup.Item>
               </ListGroup>
+              
             </div>
             <div className="col-lg-2">
               <Button
@@ -832,7 +884,7 @@ const incoming = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredMessages.map((message) => {
+              {classificationFilteredInternal.map((message) => {
                   return (
                     <tr key={message.code}>
                       <td>
@@ -932,7 +984,7 @@ const incoming = () => {
               </thead>
               {externalMessages && (
                 <tbody>
-                  {filteredExternalMessages.map((message) => {
+                  {classificationFilteredExternal.map((message) => {
                     return (
                       <tr key={message.code}>
                         <td>

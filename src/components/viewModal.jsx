@@ -52,7 +52,7 @@ function ViewFile(props) {
     // Example: Triggering download using an invisible link
     const link = document.createElement('a');
     link.href = props.file;
-    link.download = 'downloaded_file'; // You can set the desired file name
+    link.download = props.file; // You can set the desired file name
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -618,7 +618,7 @@ function ViewModal(props) {
                     <div className="wrapper w-75">
                       <label htmlFor="">Add File</label>
                       <input
-                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        accept=".pdf,.docx"
                         onChange={(e) => setFile(e.target.files[0])}
                         type="file"
                         className="form-control"
@@ -648,7 +648,7 @@ function ViewModal(props) {
                           onChange={(e) => setFile(e.target.files[0])}
                           type="file"
                           className="form-control"
-                          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                          accept=".pdf,.docx"
                         />
                       </div>
                     </div>

@@ -30,7 +30,6 @@ import {
 import { auth, db, storage } from "../../firebase";
 import BounceLoader from "react-spinners/BounceLoader";
 import Dropdown from "react-bootstrap/Dropdown";
-
 import { useEffect, useRef, useState } from "react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { toast } from "react-toastify";
@@ -46,12 +45,10 @@ import emailjs from "emailjs-com";
 import { InputGroup } from "react-bootstrap";
 import Datetime from "react-datetime";
 import "react-datetime/css/react-datetime.css";
-
 const userCollectionRef = collection(db, "users");
 const messagesCollectionRef = collection(db, "messages");
 const outgoingExternal = collection(db, "outgoing-external");
 const officeCollection = collection(db, "offices");
-
 const UserOutgoing = () => {
   const [modalShow, setModalShow] = useState(false);
   const [users, setUsers] = useState([]);
@@ -71,6 +68,7 @@ const UserOutgoing = () => {
   const [subClassificationData, setSubClassificationData] = useState([]);
   const [actionData, setActionData] = useState([]);
 
+  
   const sortData = () => {
     const sortedData = [...messages].sort((a, b) => {
       if (sort === "a-z") {
@@ -96,6 +94,7 @@ const UserOutgoing = () => {
     sortData();
   }, [sort]);
 
+
   const getOfficeStatus = (id) => {
     const office = offices.filter((office) => {
       if (office.id == id) {
@@ -104,7 +103,6 @@ const UserOutgoing = () => {
     });
     return office[0] == undefined ? "Unknown" : office[0].status;
   };
-
   function DeleteModal() {
     const handleDelete = () => {
       const docMessage = doc(db, "messages", currentMessage.id);
@@ -130,7 +128,6 @@ const UserOutgoing = () => {
       </>
     );
   }
-
   function ComposeModal(props) {
     const [code, setCode] = useState("");
     const [reciever, setReciever] = useState("");
@@ -149,14 +146,12 @@ const UserOutgoing = () => {
     const [show, setShow] = useState(false);
     const [multipe, setMultiple] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState([]);
-
     const generateRandomCode = () => {
       const min = 1000;
       const max = 99999;
       const code = Math.floor(Math.random() * (max - min + 1)) + min;
       setCode(code.toString());
     };
-
     const validateForm = () => {
       if (
         code &&
@@ -174,10 +169,8 @@ const UserOutgoing = () => {
         return false;
       }
     };
-
     function ConfirmationModal() {
       const handleClose = () => setShow(false);
-
       return (
         <>
           <Modal show={show} onHide={handleClose}>
@@ -200,13 +193,10 @@ const UserOutgoing = () => {
         </>
       );
     }
-
     const handleSendSMS = async () => {
       const textReciever = getUser(reciever);
       const textSender = getUser(props.currentUser.uid);
-
       const message = `You have received a new message from ${textSender.fullName} with a subject: ${subject}. Please log in to your account to view and respond to the message.`;
-
       try {
         const username = "Sowishi";
         const password = "sdfsdfjsdlkfjsdjfsld3533535GKJlgfgjdlf@";
@@ -246,7 +236,6 @@ const UserOutgoing = () => {
         toast.error(error.toString());
       }
     };
-
     const sendEmail = (docLink, toUser) => {
       let emailReciever = getUser(reciever);
       if (toUser) {
@@ -264,7 +253,6 @@ const UserOutgoing = () => {
         to_email: emailReciever.email,
         document_link: docLink,
       };
-
       emailjs
         .send(
           "service_aph5krh", // Replace with your EmailJS service ID
@@ -279,7 +267,6 @@ const UserOutgoing = () => {
           console.log("Error sending email:", error);
         });
     };
-
     const handleSubmit = (fileUrl) => {
       let documentState = "Pending";
       if (currentPage == "external") {
@@ -288,7 +275,6 @@ const UserOutgoing = () => {
       if (!file) {
         documentState = "In Progress";
       }
-
       try {
         const dataObject = {
           code: code || null,
@@ -311,7 +297,6 @@ const UserOutgoing = () => {
           createdAt: serverTimestamp(),
           isSendToALl: props.currentUser.uid === reciever,
         };
-
         if (currentPage == "internal") {
           if (!multipe) {
             addDoc(messagesCollectionRef, dataObject).then((document) => {
@@ -345,7 +330,6 @@ const UserOutgoing = () => {
             selectedUsers.map((user) => {
               const dataObjectCopy = { ...dataObject };
               dataObjectCopy["reciever"] = user.id;
-
               addDoc(messagesCollectionRef, dataObjectCopy).then((document) => {
                 addDoc(collection(db, "routing", document.id, document.id), {
                   createdAt: serverTimestamp(),
@@ -383,7 +367,6 @@ const UserOutgoing = () => {
       // console.log("Attachment Detail:", attachmentDetail);
       // console.log("File:", file);
     };
-
     const handleUpload = async () => {
       setLoading(true);
       setShow(false);
@@ -410,7 +393,6 @@ const UserOutgoing = () => {
         handleSubmit();
       }
     };
-
     const handleSelectedUsers = (user) => {
       setSelectedUsers((prevSelectedUsers) => {
         const userIndex = prevSelectedUsers.findIndex((u) => u.id === user.id);
@@ -421,7 +403,6 @@ const UserOutgoing = () => {
         }
       });
     };
-
     return (
       <Modal
         {...props}
@@ -440,10 +421,9 @@ const UserOutgoing = () => {
         ) : (
           <Modal.Body>
             <div className="title bg-primary w-100">
-              <h5 className="text-white mx-3 p-2 my-3">Document Details</h5>
+              <h5 className="text-white mx-3 p-2 my-3">Details</h5>
             </div>
             <Form.Label>Document Code</Form.Label>
-
             <Form.Group
               className="mb-3 flex"
               controlId="exampleForm.ControlInput1"
@@ -456,7 +436,6 @@ const UserOutgoing = () => {
               <Button onClick={generateRandomCode}>Generate</Button>
             </Form.Group>
             <Form.Label>Sender</Form.Label>
-
             <Form.Control
               type="text"
               value={
@@ -485,7 +464,6 @@ const UserOutgoing = () => {
                 Multiple
               </ListGroup.Item>
             </ListGroup>
-
             {currentPage == "internal" && (
               <>
                 {!multipe ? (
@@ -549,6 +527,12 @@ const UserOutgoing = () => {
               </>
             )}
 
+            {currentPage == "external" && (
+              <Form.Control
+                type="text"
+                onChange={(e) => setReciever(e.target.value)}
+              />
+            )}
 
             <Form.Group
               onChange={(e) => setSubject(e.target.value)}
@@ -581,16 +565,13 @@ const UserOutgoing = () => {
                   <option value="usual">Usual</option>
                 </Form.Select>
               </div>
-
               <div className="col-lg-6">
                 <Form.Label>Classification</Form.Label>
-
                 <Form.Select
                   onChange={(e) => setClassification(e.target.value)}
                   className="mb-3"
                 >
                   <option>Please select an option</option>
-
                   {classificationData.map((value) => {
                     return <option value={value.value}>{value.value}</option>;
                   })}
@@ -598,7 +579,6 @@ const UserOutgoing = () => {
               </div>
               <div className="col-lg-6">
                 <Form.Label>Sub Classification</Form.Label>
-
                 <Form.Select
                   onChange={(e) => setSubClassification(e.target.value)}
                   className="mb-3"
@@ -611,7 +591,6 @@ const UserOutgoing = () => {
               </div>
               <div className="col-lg-6">
                 <Form.Label>Action</Form.Label>
-
                 <Form.Select
                   onChange={(e) => setAction(e.target.value)}
                   className="mb-3"
@@ -632,7 +611,6 @@ const UserOutgoing = () => {
               </div>
               <div className="col-lg-6">
                 <Form.Label>Deliver Type</Form.Label>
-
                 <Form.Select
                   onChange={(e) => setDeliverType(e.target.value)}
                   className="mb-3"
@@ -659,7 +637,7 @@ const UserOutgoing = () => {
               <h5 className="text-white mx-3 p-2 my-3">Attachments</h5>
             </div>
             <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
-              <Form.Label>Attachment Details</Form.Label>
+              <Form.Label>Details</Form.Label>
               <Form.Control
                 onChange={(e) => setAttachmentDetail(e.target.value)}
                 type="text"
@@ -675,7 +653,6 @@ const UserOutgoing = () => {
             </Form.Group>
           </Modal.Body>
         )}
-
         <Modal.Footer>
           {!loading && (
             <Button
@@ -691,13 +668,11 @@ const UserOutgoing = () => {
               Send Message
             </Button>
           )}
-
           <ConfirmationModal />
         </Modal.Footer>
       </Modal>
     );
   }
-
   function DropdownAction({ message }) {
     const downloadFIle = () => {
       const fileUrl = message.fileUrl;
@@ -709,7 +684,6 @@ const UserOutgoing = () => {
       link.click();
       document.body.removeChild(link);
     };
-
     const handleDelete = () => {
       setCurrentMessage(message);
       setDeleteModal(true);
@@ -720,13 +694,11 @@ const UserOutgoing = () => {
       //   toast.error(error.message);
       // }
     };
-
     return (
       <Dropdown>
         <Dropdown.Toggle variant="secondary" id="dropdown-basic">
           <img src="./assets/images/pepicons-pencil_dots-y.png" alt="" />
         </Dropdown.Toggle>
-
         <Dropdown.Menu>
           <Dropdown.Item
             onClick={() => {
@@ -754,7 +726,6 @@ const UserOutgoing = () => {
       </Dropdown>
     );
   }
-
   function DropdownActionExternal({ message }) {
     const downloadFIle = () => {
       const fileUrl = message.fileUrl;
@@ -766,18 +737,15 @@ const UserOutgoing = () => {
       link.click();
       document.body.removeChild(link);
     };
-
     const handleDelete = () => {
       const docRef = doc(db, "outgoing-external", message.id);
       deleteDoc(docRef).then(() => toast.success("Successfully Deleted!"));
     };
-
     return (
       <Dropdown>
         <Dropdown.Toggle variant="secondary" id="dropdown-basic">
           <img src="./assets/images/pepicons-pencil_dots-y.png" alt="" />
         </Dropdown.Toggle>
-
         <Dropdown.Menu>
           <Dropdown.Item
             onClick={() => {
@@ -793,7 +761,6 @@ const UserOutgoing = () => {
           <Dropdown.Item onClick={downloadFIle}>
             Download <FaDownload />
           </Dropdown.Item>
-
           {/* <Dropdown.Item
             onClick={() => {
               setCurrentMessage(message);
@@ -806,10 +773,8 @@ const UserOutgoing = () => {
       </Dropdown>
     );
   }
-
   const fetchData = async () => {
     setLoading(true);
-
     onSnapshot(collection(db, "classification"), (snapshot) => {
       const output = [];
       snapshot.docs.forEach((doc) => {
@@ -831,9 +796,7 @@ const UserOutgoing = () => {
       });
       setActionData(output);
     });
-
     //Offices
-
     onSnapshot(officeCollection, (snapshot) => {
       const offices = [];
       snapshot.docs.forEach((doc) => {
@@ -841,19 +804,15 @@ const UserOutgoing = () => {
       });
       setOffices(offices);
     });
-
     getDoc(doc(db, "sms", "sms")).then((doc) => {
       setEnableSMS(doc.data().enable);
     });
-
     const snapshot = await getDocs(userCollectionRef);
     const output = snapshot.docs.map((doc) => {
       return { id: doc.id, ...doc.data() };
     });
-
     setUsers(output);
     const q = query(messagesCollectionRef, orderBy("createdAt", "desc"));
-
     onSnapshot(
       q,
       (querySnapshot) => {
@@ -870,7 +829,6 @@ const UserOutgoing = () => {
         console.error("Error listening to collection:", error);
       }
     );
-
     const q2 = query(outgoingExternal, orderBy("createdAt", "desc"));
     onSnapshot(q2, (snapshot) => {
       const messages = [];
@@ -882,10 +840,8 @@ const UserOutgoing = () => {
       });
       setExternalMessages(messages);
     });
-
     setLoading(false);
   };
-
   const getUser = (id) => {
     const user = users.filter((user) => {
       if (user.id === id) {
@@ -894,17 +850,14 @@ const UserOutgoing = () => {
     });
     return user[0] ? user[0] : { fullName: "Deleted User" };
   };
-
   function toTitleCase(str) {
     return str.replace(/\w\S*/g, function (txt) {
       return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
     });
   }
-
   useEffect(() => {
     fetchData();
   }, []);
-
   const filteredMessages = messages.filter((message) => {
     const sender = getUser(message.sender);
     const reciever = getUser(message.reciever);
@@ -918,7 +871,6 @@ const UserOutgoing = () => {
       return message;
     }
   });
-
   const filteredExternalMessages = externalMessages.filter((message) => {
     const sender = getUser(message.sender);
     if (
@@ -930,7 +882,6 @@ const UserOutgoing = () => {
       return message;
     }
   });
-
   return (
     <LayoutUser>
       {currentMessage && (
@@ -942,7 +893,6 @@ const UserOutgoing = () => {
           name={"end"}
         />
       )}
-
       {currentMessage && (
         <ViewModal
           getUser={getUser}
@@ -954,7 +904,6 @@ const UserOutgoing = () => {
           currentPage={currentPage}
         />
       )}
-
       {auth.currentUser && (
         <ComposeModal
           show={modalShow}
@@ -962,9 +911,7 @@ const UserOutgoing = () => {
           currentUser={auth.currentUser}
         />
       )}
-
       <DeleteModal />
-
       <div className="dashboard">
         <div className="row">
           <div className="col-lg-8">
@@ -1001,7 +948,14 @@ const UserOutgoing = () => {
                 >
                   Internal
                 </ListGroup.Item>
-                
+                <ListGroup.Item
+                  className={`${
+                    currentPage == "external" ? "bg-info text-white" : ""
+                  } px-5 fw-bold`}
+                  onClick={() => setCurrentPage("external")}
+                >
+                  External
+                </ListGroup.Item>
               </ListGroup>
             </div>
             <div className="col-lg-2">
@@ -1025,13 +979,14 @@ const UserOutgoing = () => {
                   type="text"
                   placeholder="Search docID, name, etc..."
                   className="form form-control w-75 bg-secondary mx-2"
+                  Expand
+                  Down
                 />
                 <FaSearch />
               </div>
             </div>
           </div>
           {loading && <PlaceHolder />}
-
           {currentPage == "internal" ? (
             <Table responsive="md" bordered hover variant="white">
               <thead>
@@ -1083,7 +1038,6 @@ const UserOutgoing = () => {
                         )}
                       </td>
                       <td>{message.action}</td>
-
                       {message.date && (
                         <td>{moment(message.date.toDate()).format("LLL")}</td>
                       )}
@@ -1238,5 +1192,4 @@ const UserOutgoing = () => {
     </LayoutUser>
   );
 };
-
 export default UserOutgoing;

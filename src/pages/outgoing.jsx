@@ -387,29 +387,103 @@ const Outgoing = () => {
     const handleUpload = async () => {
       setLoading(true);
       setShow(false);
-      if (file) {
+    
+      const generateRandomCode = () => {
+        const min = 1000;
+        const max = 99999;
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      };
+    
+      const generateCodeForUser = () => {
+        return generateRandomCode().toString();
+      };
+    
+      const uploadFile = async (file) => {
         const storageRef = ref(storage, `uploads/${file.name}`);
-        uploadBytes(storageRef, file).then((snapshot) => {
-          getDownloadURL(storageRef)
-            .then((url) => {
-              if (url) {
-                if (enableSMS && currentPage == "internal") {
-                  // handleSendSMS();
-                  if (!multipe) {
-                    sendEmail(url);
-                  }
-                }
-                handleSubmit(url);
-              }
-            })
-            .catch((error) => {
-              console.error("Error getting download URL:", error);
-            });
-        });
-      } else {
-        handleSubmit();
+        try {
+          const snapshot = await uploadBytes(storageRef, file);
+          const fileUrl = await getDownloadURL(snapshot.ref);
+          return fileUrl;
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          throw new Error("Error uploading file. Please try again.");
+        }
+      };
+    
+      const handleDocumentForUser = async (user, fileUrl) => {
+        try {
+          const dataObjectCopy = {
+            code: generateCodeForUser(),
+            sender: props.currentUser.uid || null,
+            reciever: user.id,
+            subject,
+            description,
+            prioritization,
+            date: serverTimestamp(),
+            classification,
+            subClassification,
+            action,
+            dueDate,
+            deliverType,
+            documentFlow: currentPage === "internal" ? "Internal" : "External",
+            attachmentDetail,
+            fileUrl: fileUrl || "N/A",
+            fileName: file.name || "N/A",
+            status: "Pending",
+            createdAt: serverTimestamp(),
+            isSendToAll: props.currentUser.uid === user.id,
+          };
+    
+          const documentRef = await addDoc(messagesCollectionRef, dataObjectCopy);
+          await addDoc(collection(db, "routing", documentRef.id, documentRef.id), {
+            createdAt: serverTimestamp(),
+            message: dataObjectCopy,
+            status: "Created",
+          });
+    
+          toast.success(`Your message is successfully sent to ${user.fullName}`);
+          sendEmail(fileUrl, user);
+        } catch (error) {
+          console.error("Error handling document for user:", error);
+          toast.error(`Error sending document to ${user.fullName}. Please try again.`);
+        }
+      };
+    
+      try {
+        if (file) {
+          const fileUrl = await uploadFile(file);
+    
+          if (enableSMS && currentPage === "internal") {
+            if (!multipe) {
+              sendEmail(fileUrl);
+              handleSubmit(fileUrl);
+            } else {
+              // Handle multiple users
+              const promises = selectedUsers.map((user) => {
+                return handleDocumentForUser(user, fileUrl);
+              });
+    
+              await Promise.all(promises);
+            }
+          } else {
+            // Continue with the existing logic for single user
+            handleSubmit(fileUrl);
+          }
+        } else {
+          // Continue with the existing logic for single user
+          handleSubmit();
+        }
+      } catch (error) {
+        console.error("Error handling upload:", error);
+        toast.error(error.message || "Error sending document. Please try again.");
+      } finally {
+        setLoading(false);
       }
     };
+    
+    
+    
+    
 
     const handleSelectedUsers = (user) => {
       setSelectedUsers((prevSelectedUsers) => {
@@ -675,7 +749,7 @@ const Outgoing = () => {
                 <Form.Control
                   onChange={(e) => setFile(e.target.files[0])}
                   type="file"
-                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  accept=".pdf,.docx"
                 />
               </Form.Group>
             </Form.Group>

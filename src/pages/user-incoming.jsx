@@ -65,6 +65,8 @@ const UserIncoming = () => {
   const [composeModalOpen, setComposeModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("a-z");
+  const [currentClassification, setCurrentClassification] = useState("");
+  const [classificationData, setClassificationData] = useState([]);
 
   const handleSeen = async (message) => {
     const isAll = message.reciever == message.sender;
@@ -176,7 +178,7 @@ const UserIncoming = () => {
                           handleSeen(message);
                         }}
                       >
-                        {message.fileName.substring(0, 20) + ".pdf"}
+                        {message.fileName}
                       </td>
                       <td>{message.dueDate}</td>
                     </tr>
@@ -205,7 +207,7 @@ const UserIncoming = () => {
     const [action, setAction] = useState("");
     const [dueDate, setDueDate] = useState("");
     const [deliverType, setDeliverType] = useState("");
-    const [documentFlow, setDocumentFlow] = useState("");
+    const [documentFlow, setDocumentFlow] = useState("External");
     const [attachmentDetail, setAttachmentDetail] = useState("");
     const [file, setFile] = useState("");
     const [loading, setLoading] = useState(false);
@@ -235,7 +237,6 @@ const UserIncoming = () => {
       if (
         code &&
         sender &&
-        reciever &&
         subject &&
         prioritization &&
         classification &&
@@ -265,7 +266,7 @@ const UserIncoming = () => {
               if (validateForm()) {
                 setShow(true);
               } else {
-                toast.error("Pleae fill up the form completely");
+                toast.error("Please fill up the form completely");
               }
             }}
           >
@@ -497,8 +498,8 @@ const UserIncoming = () => {
                   type="text"
                   onChange={(e) => setDocumentFlow(e.target.value)}
                   className="mb-3"
-                  defaultValue="External"
-                  disabled
+                  defaultValue={documentFlow}
+                  readOnly
                 />
               </div>
             </div>
@@ -516,7 +517,7 @@ const UserIncoming = () => {
                 <Form.Control
                   onChange={(e) => setFile(e.target.files[0])}
                   type="file"
-                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  accept=".pdf,.docx"
                 />
               </Form.Group>
             </Form.Group>
@@ -633,6 +634,14 @@ const UserIncoming = () => {
 
     setUsers(output);
 
+    onSnapshot(collection(db, "classification"), (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setClassificationData(output);
+    });
+
     const q = query(messagesCollectionRef, orderBy("createdAt", "desc"));
 
     onSnapshot(
@@ -727,6 +736,25 @@ const UserIncoming = () => {
     }
   });
 
+  const classificationFilteredInternal = filteredMessages.filter((message) => {
+    if (currentClassification == "") {
+      return message;
+    }
+    if (message.classification == currentClassification) {
+      return message;
+    }
+  });
+  const classificationFilteredExternal = filteredExternalMessages.filter(
+    (message) => {
+      if (currentClassification == "") {
+        return message;
+      }
+      if (message.classification == currentClassification) {
+        return message;
+      }
+    }
+  );
+
   return (
     <UserLayout>
       {currentMessage && (
@@ -809,8 +837,29 @@ const UserIncoming = () => {
                 >
                   External
                 </ListGroup.Item>
+                
               </ListGroup>
+              {currentPage === "internal" && (
+                <ListGroup className="col-lg-5 p-0 m-0">
+                  <ListGroup.Item style={{ border: "none" }}>
+                    <Form.Select
+                      aria-label="Default select example"
+                      onChange={(e) => setCurrentClassification(e.target.value)}
+                    >
+                      <option key={0} value={""}>
+                        All Classification
+                      </option>
+                      {classificationData.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.value}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </ListGroup.Item>
+                </ListGroup>
+              )}
             </div>
+            
             <div className="col-lg-2">
               <Button
                 className="mx-0 mx-lg-3 my-3"
@@ -855,7 +904,7 @@ const UserIncoming = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredMessages.map((message) => {
+                {classificationFilteredInternal.map((message) => {
                   return (
                     <tr key={message.code}>
                       <td>
