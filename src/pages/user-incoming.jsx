@@ -67,14 +67,34 @@ const UserIncoming = () => {
   const [sort, setSort] = useState("a-z");
 
   const handleSeen = async (message) => {
-    const docRef = doc(db, "routing", message.id, message.id, message.id);
-    const res = await getDoc(docRef);
-    if (!res.exists()) {
-      setDoc(docRef, {
+    const isAll = message.reciever == message.sender;
+    const seener = getUser(auth.currentUser.uid).fullName;
+    if (isAll) {
+      const docRef = collection(
+        db,
+        "routing",
+        message.id,
+        "sendAll",
+        "seeners",
+        "AllSeeners"
+      );
+      addDoc(docRef, {
         createdAt: serverTimestamp(),
         message: message,
         status: "Seen",
+        seener: seener,
       });
+    } else {
+      const docRef = doc(db, "routing", message.id, message.id, message.id);
+      const res = await getDoc(docRef);
+      if (!res.exists()) {
+        setDoc(docRef, {
+          createdAt: serverTimestamp(),
+          message: message,
+          status: "Seen",
+          seener: seener,
+        });
+      }
     }
   };
 
@@ -761,6 +781,7 @@ const UserIncoming = () => {
             {currentPage == "external" && (
               <div className="col-lg-4 flex justify-content-end">
                 <img
+                  style={{ width: "150px", cursor: "pointer" }}
                   onClick={() => setComposeModalOpen(true)}
                   className="mx-3"
                   src="./assets/images/Group 8779.png"

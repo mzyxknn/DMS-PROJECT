@@ -1,6 +1,13 @@
 import { FaEye, FaFile, FaFolder } from "react-icons/fa";
-import Layout from "../layout/layout";
-import { Breadcrumb, Button, Dropdown, Modal } from "react-bootstrap";
+import LayoutUser from "../layout/layoutUser";
+import {
+  Breadcrumb,
+  Button,
+  Dropdown,
+  ListGroup,
+  Modal,
+  Table,
+} from "react-bootstrap";
 import { useEffect, useState } from "react";
 import { Form } from "react-router-dom";
 import {
@@ -8,6 +15,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -17,15 +25,44 @@ import { auth, db, storage } from "../../firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { BarLoader } from "react-spinners";
 import { toast } from "react-toastify";
-import LayoutUser from "../layout/layoutUser";
+import moment from "moment";
+import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 
 const UserFiles = () => {
   const [storages, setStorages] = useState([]);
   const [currentFolder, setCurrentFolder] = useState("files");
   const [loading, setLoading] = useState(false);
+  const [offices, setOffices] = useState([]);
+  const [view, setView] = useState("grid");
+  const [sort, setSort] = useState("a-z");
+
+  const sortData = () => {
+    const sortedData = [...storages].sort((a, b) => {
+      if (sort === "a-z") {
+        return a.fileName.localeCompare(b.fileName);
+      } else {
+        return b.fileName.localeCompare(a.fileName);
+      }
+    });
+
+    setStorages(sortedData);
+  };
+
+  useEffect(() => {
+    sortData();
+  }, [sort]);
 
   const fetchData = () => {
     setCurrentFolder("files");
+
+    getDocs(collection(db, "offices")).then((res) => {
+      const offices = [];
+      res.docs.forEach((doc) => {
+        offices.push({ ...doc.data(), id: doc.id });
+      });
+      setOffices(offices);
+    });
+
     const q = query(
       collection(db, "storage", auth.currentUser.uid, "files"),
       orderBy("createdAt", "desc")
@@ -67,7 +104,7 @@ const UserFiles = () => {
       const data = {
         owner: auth.currentUser.uid,
         isFolder: true,
-        name: folderName,
+        fileName: folderName,
         createdAt: serverTimestamp(),
       };
       addDoc(collection(db, "storage", auth.currentUser.uid, "files"), data);
@@ -181,26 +218,30 @@ const UserFiles = () => {
   };
 
   function DropdownAction({ storage }) {
-    const downloadFIle = () => {
-      const fileUrl = message.fileUrl;
-      const link = document.createElement("a");
-      link.href = fileUrl;
-      link.target = "_blank";
-      link.download = "downloaded_file";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
-
     const handleDelete = async () => {
-      const docMessage = doc(
-        db,
-        "storage",
-        auth.currentUser.uid,
-        "files",
-        storage.id
-      );
-      deleteDoc(docMessage).then(() => toast.success("Successfully Deleted!"));
+      if (currentFolder !== "files") {
+        const docMessage = doc(
+          db,
+          "storage",
+          auth.currentUser.uid,
+          currentFolder,
+          storage.id
+        );
+        deleteDoc(docMessage).then(() =>
+          toast.success("Successfully Deleted!")
+        );
+      } else {
+        const docMessage = doc(
+          db,
+          "storage",
+          auth.currentUser.uid,
+          "files",
+          storage.id
+        );
+        deleteDoc(docMessage).then(() =>
+          toast.success("Successfully Deleted!")
+        );
+      }
     };
 
     return (
@@ -212,6 +253,9 @@ const UserFiles = () => {
 
         <Dropdown.Menu>
           <Dropdown.Item onClick={handleDelete}>Delete</Dropdown.Item>
+          <Dropdown.Item onClick={() => downloadFile(storage.fileURL)}>
+            Download File
+          </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
     );
@@ -227,7 +271,7 @@ const UserFiles = () => {
     <LayoutUser>
       <div className="files-wrapper">
         <div className="row">
-          <div className="col-lg-8">
+          <div className="col-lg-6">
             <div className="wrapper">
               <h2 className="fw-bold my-3 mx-2">
                 Files Storage
@@ -239,9 +283,42 @@ const UserFiles = () => {
               ></div>
             </div>
           </div>
-          <div className="col-lg-4 flex">
-            <AddFolder />
-            <AddFile />
+          <div className="col-lg-6 flex">
+            <div className="row">
+              <div className="col-lg-6 flex justify-cotent-start align-items-center">
+                <AddFolder />
+                <AddFile />
+              </div>
+              <div className="col-lg-6 flex justify-cotent-start align-items-center my-3">
+                <ListGroup horizontal>
+                  <ListGroup.Item
+                    className={`${view == "grid" ? "bg-secondary" : ""}`}
+                    onClick={() => setView("grid")}
+                  >
+                    Grid VIew
+                  </ListGroup.Item>
+                  <ListGroup.Item
+                    className={`${view == "list" ? "bg-secondary" : ""}`}
+                    onClick={() => setView("list")}
+                  >
+                    List View
+                  </ListGroup.Item>
+                </ListGroup>
+              </div>
+            </div>
+            <ListGroup.Item style={{ border: "none" }}>
+              <Button
+                onClick={() => {
+                  if (sort == "a-z") {
+                    setSort("z-a");
+                  } else {
+                    setSort("a-z");
+                  }
+                }}
+              >
+                Sort {sort}
+              </Button>
+            </ListGroup.Item>
           </div>
           <div className="col-12 mx-3">
             <Breadcrumb>
@@ -261,48 +338,96 @@ const UserFiles = () => {
           </div>
         )}
 
-        <div className="row mt-5">
-          {storage &&
-            storages.map((storage) => {
-              return (
-                <>
-                  {storage.isFolder ? (
-                    <div className="col-6 col-md-4 col-lg-3 flex flex-column">
-                      <FaFolder
-                        color="gray"
-                        onClick={() => {
-                          setCurrentFolder(storage.name);
-                          fetchFolder(storage.name);
-                        }}
-                        size={70}
-                      />{" "}
-                      <div className="flex justify-content-around">
-                        <div className="mx-3">{storage.name}</div>
-                        <DropdownAction storage={storage} />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div
-                        key={storage.id}
-                        className="col-6 col-md-4 col-lg-3 flex flex-column"
-                      >
-                        <FaFile
-                          color="gray"
-                          onClick={() => downloadFile(storage.fileURL)}
-                          size={70}
+        {view == "grid" ? (
+          <div className="row mt-5">
+            {storage &&
+              storages.map((storage) => {
+                return (
+                  <>
+                    {storage.isFolder ? (
+                      <div className="col-6 col-md-4 col-lg-3 flex flex-column">
+                        <img
+                          src={"./assets/images/folder.png"}
+                          alt=""
+                          width={"200px"}
+                          onClick={() => {
+                            setCurrentFolder(storage.fileName);
+                            fetchFolder(storage.fileName);
+                          }}
+                          style={{ cursor: "pointer" }}
                         />
                         <div className="flex justify-content-around">
                           <div className="mx-3">{storage.fileName}</div>
                           <DropdownAction storage={storage} />
                         </div>
                       </div>
-                    </>
-                  )}
-                </>
-              );
-            })}
-        </div>
+                    ) : (
+                      <>
+                        <div
+                          key={storage.id}
+                          className="col-6 col-md-4 col-lg-3 flex flex-column"
+                        >
+                          <iframe
+                            style={{ width: "100%", height: "200px" }}
+                            src={storage.fileURL}
+                            scrolling="no"
+                            sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-modals allow-orientation-lock allow-pointer-lock"
+                            allow="clipboard-write; display-capture;"
+                          ></iframe>
+
+                          <div className="flex justify-content-around">
+                            <div className="mx-3">{storage.fileName}</div>
+                            <DropdownAction storage={storage} />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                );
+              })}
+          </div>
+        ) : (
+          <Table responsive="md" variant="white">
+            <thead>
+              <tr>
+                <th>File Name</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {storages.map((storage) => {
+                return (
+                  <tr>
+                    <td
+                      style={{ cursor: "pointer" }}
+                      onClick={() => {
+                        if (storage.isFolder) {
+                          setCurrentFolder(storage.fileName);
+                          fetchFolder(storage.fileName);
+                        }
+                        if (!storage.isFolder) {
+                          downloadFile(storage.fileURL);
+                        }
+                      }}
+                    >
+                      {storage.fileName}
+                    </td>
+                    {storage.createdAt && (
+                      <td>
+                        {moment(storage.createdAt.toDate()).format("LLL")}
+                      </td>
+                    )}
+                    <td>
+                      {" "}
+                      <DropdownAction storage={storage} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        )}
       </div>
     </LayoutUser>
   );

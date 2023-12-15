@@ -342,7 +342,7 @@ const Reports = () => {
             </div>
           )}
           {currentPage == "internal" ? (
-            <Table responsive="md" bordered hover variant="white">
+            <Table responsive="md" bordered variant="white">
               <thead>
                 <tr>
                   <th>DocID</th>
@@ -354,6 +354,8 @@ const Reports = () => {
                   <th>Action</th>
                   <th>Date </th>
                   <th>Prioritization</th>
+                  <th>Remarks</th>
+                  <th>Date Resolve</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -406,6 +408,12 @@ const Reports = () => {
                         >
                           {toTitleCase(message.prioritization)}
                         </Badge>{" "}
+                      </td>
+                      <td>{message.remarks ? message.remarks : "N/A"}</td>
+                      <td>
+                        {message.dateResolve
+                          ? moment(message.dateResolve.toDate()).format("LLL")
+                          : "N/A"}
                       </td>
                       <td>
                         {message.status === "Received" && (

@@ -26,7 +26,7 @@ import {
   query,
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
-import { Dropdown } from "react-bootstrap";
+import { Dropdown, Form, ListGroupItem } from "react-bootstrap";
 import ViewModal from "../components/viewModal";
 import { toast } from "react-toastify";
 import Placeholder from "react-bootstrap/Placeholder";
@@ -50,6 +50,8 @@ const Dashboard = () => {
   const [sort, setSort] = useState("a-z");
   const [urgent, setUrgent] = useState(false);
   const [urgentFiles, setUrgentFiles] = useState([]);
+  const [classificationData, setClassificationData] = useState([]);
+  const [currentClassification, setCurrentClassification] = useState("");
 
   const messagesCollectionRef = collection(db, "messages");
   const userCollectionRef = collection(db, "users");
@@ -203,8 +205,16 @@ const Dashboard = () => {
   const fetchData = async () => {
     setLoading(true);
 
-    getDoc(doc(db, "sms", "sms")).then((doc) => {
-      console.log(doc.data());
+    // getDoc(doc(db, "sms", "sms")).then((doc) => {
+    //   console.log(doc.data());
+    // });
+
+    onSnapshot(collection(db, "classification"), (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setClassificationData(output);
     });
 
     const snapshot = await getDocs(userCollectionRef);
@@ -345,6 +355,15 @@ const Dashboard = () => {
     }
   });
 
+  const classificationFiltered = filteredMessagesFinal.filter((message) => {
+    if (currentClassification == "") {
+      return message;
+    }
+    if (message.classification == currentClassification) {
+      return message;
+    }
+  });
+
   return (
     <Layout>
       <div className="dashboard">
@@ -423,8 +442,11 @@ const Dashboard = () => {
           </div>
 
           <div className="row">
-            <div className="col-lg-3 d-flex my-2 my-lg-0">
-              <ListGroup horizontal>
+            <div className="col-lg-6  my-2 my-lg-0">
+              <ListGroup
+                horizontal
+                className="d-flex align-items-center justify-content-between"
+              >
                 <ListGroup.Item
                   className={`${filter == "all" ? "bg-secondary" : ""}`}
                   onClick={() => setFilter("all")}
@@ -443,21 +465,37 @@ const Dashboard = () => {
                 >
                   Rejected <Badge bg="danger">{allRejected()}</Badge>{" "}
                 </ListGroup.Item>
+                <ListGroup.Item style={{ border: "none" }}>
+                  <Form.Select
+                    aria-label="Default select example"
+                    onChange={(e) => setCurrentClassification(e.target.value)}
+                  >
+                    <option key={0} value={""}>
+                      Please select classification
+                    </option>{" "}
+                    {classificationData.map((item) => {
+                      return (
+                        <option key={item.value} value={item.value}>
+                          {item.value}
+                        </option>
+                      );
+                    })}
+                  </Form.Select>
+                </ListGroup.Item>
+                <ListGroup.Item style={{ border: "none" }}>
+                  <Button
+                    onClick={() => {
+                      if (sort == "a-z") {
+                        setSort("z-a");
+                      } else {
+                        setSort("a-z");
+                      }
+                    }}
+                  >
+                    Sort {sort}
+                  </Button>
+                </ListGroup.Item>
               </ListGroup>
-            </div>
-            <div className="col-lg-3">
-              <Button
-                className="mx-0 mx-lg-3"
-                onClick={() => {
-                  if (sort == "a-z") {
-                    setSort("z-a");
-                  } else {
-                    setSort("a-z");
-                  }
-                }}
-              >
-                Sort {sort}
-              </Button>
             </div>
             <div className="col-lg-6 flex my-2 my-lg-0">
               <div className="search flex w-100 ">
@@ -491,7 +529,7 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredMessagesFinal.map((message) => {
+                {classificationFiltered.map((message) => {
                   return (
                     <tr key={message.code}>
                       <td>

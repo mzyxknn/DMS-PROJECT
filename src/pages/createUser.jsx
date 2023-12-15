@@ -21,7 +21,7 @@ import { auth, db } from "../../firebase";
 import { toast } from "react-toastify";
 import {
   createUserWithEmailAndPassword,
-  deleteUser,
+  getAuth,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
@@ -55,6 +55,7 @@ function DropdownAction({ message }) {
         // Close the modal after successful deletion
         setDeleteModal(false);
       });
+      console.log(getAuth().currentUser);
     } catch (error) {
       toast.error(error.message);
     }
@@ -266,7 +267,7 @@ const CreateUser = () => {
   return (
     <Layout>
       <OfficeModal show={officeModal} onHide={() => setOfficeModal(false)} />
-    
+
       <div className="row">
         <div className="col-8">
           <div className="wrapper">

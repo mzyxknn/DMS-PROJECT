@@ -36,12 +36,12 @@ import { useEffect, useRef, useState } from "react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { toast } from "react-toastify";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import LayoutUser from "../layout/layoutUser";
 import Offcanvas from "react-bootstrap/Offcanvas";
 import ViewModal from "../components/viewModal";
 import PlaceHolder from "../components/placeholder";
 import moment from "moment";
 import { Margin, Resolution, usePDF } from "react-to-pdf";
-import LayoutUser from "../layout/layoutUser";
 
 const userCollectionRef = collection(db, "users");
 const messagesCollectionRef = collection(db, "messages");
@@ -67,7 +67,6 @@ const UserReports = () => {
     const snapshot = await getDocs(userCollectionRef);
     const output = snapshot.docs.map((doc) => {
       return { id: doc.id, ...doc.data() };
-
     });
 
     setUsers(output);
@@ -345,7 +344,7 @@ const UserReports = () => {
             </div>
           )}
           {currentPage == "internal" ? (
-            <Table responsive="md" bordered hover variant="white">
+            <Table responsive="md" bordered variant="white">
               <thead>
                 <tr>
                   <th>DocID</th>
@@ -357,6 +356,8 @@ const UserReports = () => {
                   <th>Action</th>
                   <th>Date </th>
                   <th>Prioritization</th>
+                  <th>Remarks</th>
+                  <th>Date Resolve</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -409,6 +410,12 @@ const UserReports = () => {
                         >
                           {toTitleCase(message.prioritization)}
                         </Badge>{" "}
+                      </td>
+                      <td>{message.remarks ? message.remarks : "N/A"}</td>
+                      <td>
+                        {message.dateResolve
+                          ? moment(message.dateResolve.toDate()).format("LLL")
+                          : "N/A"}
                       </td>
                       <td>
                         {message.status === "Received" && (

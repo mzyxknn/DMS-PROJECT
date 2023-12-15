@@ -758,6 +758,7 @@ const incoming = () => {
             {currentPage == "external" && (
               <div className="col-lg-4 flex justify-content-end">
                 <img
+                  style={{ width: "150px", cursor: "pointer" }}
                   onClick={() => setComposeModalOpen(true)}
                   className="mx-3"
                   src="./assets/images/Group 8779.png"

@@ -26,6 +26,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { BarLoader } from "react-spinners";
 import { toast } from "react-toastify";
 import moment from "moment";
+import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 
 const Files = () => {
   const [storages, setStorages] = useState([]);
@@ -33,6 +34,23 @@ const Files = () => {
   const [loading, setLoading] = useState(false);
   const [offices, setOffices] = useState([]);
   const [view, setView] = useState("grid");
+  const [sort, setSort] = useState("a-z");
+
+  const sortData = () => {
+    const sortedData = [...storages].sort((a, b) => {
+      if (sort === "a-z") {
+        return a.fileName.localeCompare(b.fileName);
+      } else {
+        return b.fileName.localeCompare(a.fileName);
+      }
+    });
+
+    setStorages(sortedData);
+  };
+
+  useEffect(() => {
+    sortData();
+  }, [sort]);
 
   const fetchData = () => {
     setCurrentFolder("files");
@@ -86,7 +104,7 @@ const Files = () => {
       const data = {
         owner: auth.currentUser.uid,
         isFolder: true,
-        name: folderName,
+        fileName: folderName,
         createdAt: serverTimestamp(),
       };
       addDoc(collection(db, "storage", auth.currentUser.uid, "files"), data);
@@ -200,17 +218,6 @@ const Files = () => {
   };
 
   function DropdownAction({ storage }) {
-    const downloadFIle = () => {
-      const fileUrl = message.fileUrl;
-      const link = document.createElement("a");
-      link.href = fileUrl;
-      link.target = "_blank";
-      link.download = "downloaded_file";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
-
     const handleDelete = async () => {
       if (currentFolder !== "files") {
         const docMessage = doc(
@@ -246,6 +253,9 @@ const Files = () => {
 
         <Dropdown.Menu>
           <Dropdown.Item onClick={handleDelete}>Delete</Dropdown.Item>
+          <Dropdown.Item onClick={() => downloadFile(storage.fileURL)}>
+            Download File
+          </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
     );
@@ -296,6 +306,19 @@ const Files = () => {
                 </ListGroup>
               </div>
             </div>
+            <ListGroup.Item style={{ border: "none" }}>
+              <Button
+                onClick={() => {
+                  if (sort == "a-z") {
+                    setSort("z-a");
+                  } else {
+                    setSort("a-z");
+                  }
+                }}
+              >
+                Sort {sort}
+              </Button>
+            </ListGroup.Item>
           </div>
           <div className="col-12 mx-3">
             <Breadcrumb>
@@ -323,16 +346,18 @@ const Files = () => {
                   <>
                     {storage.isFolder ? (
                       <div className="col-6 col-md-4 col-lg-3 flex flex-column">
-                        <FaFolder
-                          color="gray"
+                        <img
+                          src={"./assets/images/folder.png"}
+                          alt=""
+                          width={"200px"}
                           onClick={() => {
-                            setCurrentFolder(storage.name);
-                            fetchFolder(storage.name);
+                            setCurrentFolder(storage.fileName);
+                            fetchFolder(storage.fileName);
                           }}
-                          size={70}
-                        />{" "}
+                          style={{ cursor: "pointer" }}
+                        />
                         <div className="flex justify-content-around">
-                          <div className="mx-3">{storage.name}</div>
+                          <div className="mx-3">{storage.fileName}</div>
                           <DropdownAction storage={storage} />
                         </div>
                       </div>
@@ -342,11 +367,14 @@ const Files = () => {
                           key={storage.id}
                           className="col-6 col-md-4 col-lg-3 flex flex-column"
                         >
-                          <FaFile
-                            color="gray"
-                            onClick={() => downloadFile(storage.fileURL)}
-                            size={70}
-                          />
+                          <iframe
+                            style={{ width: "100%", height: "200px" }}
+                            src={storage.fileURL}
+                            scrolling="no"
+                            sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-modals allow-orientation-lock allow-pointer-lock"
+                            allow="clipboard-write; display-capture;"
+                          ></iframe>
+
                           <div className="flex justify-content-around">
                             <div className="mx-3">{storage.fileName}</div>
                             <DropdownAction storage={storage} />
@@ -374,14 +402,16 @@ const Files = () => {
                     <td
                       style={{ cursor: "pointer" }}
                       onClick={() => {
-                        setCurrentFolder(storage.name);
-                        fetchFolder(storage.name);
+                        if (storage.isFolder) {
+                          setCurrentFolder(storage.fileName);
+                          fetchFolder(storage.fileName);
+                        }
                         if (!storage.isFolder) {
                           downloadFile(storage.fileURL);
                         }
                       }}
                     >
-                      {storage.name || storage.fileName}
+                      {storage.fileName}
                     </td>
                     {storage.createdAt && (
                       <td>

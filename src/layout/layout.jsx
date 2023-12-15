@@ -73,7 +73,8 @@ const Layout = ({ children }) => {
           position: position,
           address: address,
           phone: phone,
-          profile: profile ? profileLink : user.profile,
+          profile: profile || (user && user.profile) || null,
+          // profile: profile ? profileLink : user.profile,
         };
         const userDoc = doc(db, "users", props.user.id);
         setDoc(userDoc, data, { merge: true }).then((res) => {

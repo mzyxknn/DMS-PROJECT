@@ -43,6 +43,9 @@ import moment from "moment";
 import axios from "axios";
 import Routing from "../components/routing";
 import emailjs from "emailjs-com";
+import { InputGroup } from "react-bootstrap";
+import Datetime from "react-datetime";
+import "react-datetime/css/react-datetime.css";
 
 const userCollectionRef = collection(db, "users");
 const messagesCollectionRef = collection(db, "messages");
@@ -143,6 +146,9 @@ const Outgoing = () => {
     const [attachmentDetail, setAttachmentDetail] = useState("");
     const [file, setFile] = useState("");
     const [loading, setLoading] = useState(false);
+    const [show, setShow] = useState(false);
+    const [multipe, setMultiple] = useState(false);
+    const [selectedUsers, setSelectedUsers] = useState([]);
 
     const generateRandomCode = () => {
       const min = 1000;
@@ -154,7 +160,7 @@ const Outgoing = () => {
     const validateForm = () => {
       if (
         code &&
-        reciever &&
+        (reciever || selectedUsers.length >= 1) &&
         subject &&
         prioritization &&
         classification &&
@@ -170,25 +176,10 @@ const Outgoing = () => {
     };
 
     function ConfirmationModal() {
-      const [show, setShow] = useState(false);
-
       const handleClose = () => setShow(false);
 
       return (
         <>
-          <Button
-            variant="primary"
-            onClick={() => {
-              if (validateForm()) {
-                setShow(true);
-              } else {
-                toast.error("Pleae fill up the form completely");
-              }
-            }}
-          >
-            Send Message
-          </Button>
-
           <Modal show={show} onHide={handleClose}>
             <Modal.Header closeButton>
               <Modal.Title>Confirmation</Modal.Title>
@@ -256,11 +247,12 @@ const Outgoing = () => {
       }
     };
 
-    const sendEmail = (docLink) => {
-      const emailReciever = getUser(reciever);
+    const sendEmail = (docLink, toUser) => {
+      let emailReciever = getUser(reciever);
+      if (toUser) {
+        emailReciever = toUser;
+      }
       const emailSender = getUser(props.currentUser.uid);
-      console.log(emailReciever, emailSender);
-
       const templateParams = {
         sender: emailSender.fullName,
         reciever: emailReciever.fullName,
@@ -311,7 +303,7 @@ const Outgoing = () => {
           action: action || null,
           dueDate: dueDate || null,
           deliverType: deliverType || null,
-          documentFlow: documentFlow || null,
+          documentFlow: currentPage == "internal" ? "Internal" : "External",
           attachmentDetail: attachmentDetail || null,
           fileUrl: fileUrl || "N/A",
           fileName: file.name || "N/A",
@@ -321,15 +313,51 @@ const Outgoing = () => {
         };
 
         if (currentPage == "internal") {
-          addDoc(messagesCollectionRef, dataObject).then((document) => {
-            addDoc(collection(db, "routing", document.id, document.id), {
-              createdAt: serverTimestamp(),
-              message: dataObject,
-              status: "Created",
+          if (!multipe) {
+            addDoc(messagesCollectionRef, dataObject).then((document) => {
+              const isAll = props.currentUser.uid == reciever;
+              if (!isAll) {
+                addDoc(collection(db, "routing", document.id, document.id), {
+                  createdAt: serverTimestamp(),
+                  message: dataObject,
+                  status: "Created",
+                });
+                toast.success("Your message is succesfully sent!");
+                setModalShow(false);
+              } else {
+                const docRef = doc(
+                  db,
+                  "routing",
+                  document.id,
+                  "sendAll",
+                  "created"
+                );
+                setDoc(docRef, {
+                  createdAt: serverTimestamp(),
+                  message: dataObject,
+                  status: "Created",
+                  user: getUser(auth.currentUser.uid).fullName,
+                });
+                setModalShow(false);
+              }
             });
-            toast.success("Your message is succesfully sent!");
-            setModalShow(false);
-          });
+          } else {
+            selectedUsers.map((user) => {
+              const dataObjectCopy = { ...dataObject };
+              dataObjectCopy["reciever"] = user.id;
+
+              addDoc(messagesCollectionRef, dataObjectCopy).then((document) => {
+                addDoc(collection(db, "routing", document.id, document.id), {
+                  createdAt: serverTimestamp(),
+                  message: dataObject,
+                  status: "Created",
+                });
+                toast.success("Your message is succesfully sent!");
+                setModalShow(false);
+              });
+              sendEmail(fileUrl, user);
+            });
+          }
         } else {
           addDoc(outgoingExternal, dataObject).then(() => {
             toast.success("Your message is succesfully sent!");
@@ -358,6 +386,7 @@ const Outgoing = () => {
 
     const handleUpload = async () => {
       setLoading(true);
+      setShow(false);
       if (file) {
         const storageRef = ref(storage, `uploads/${file.name}`);
         uploadBytes(storageRef, file).then((snapshot) => {
@@ -366,7 +395,9 @@ const Outgoing = () => {
               if (url) {
                 if (enableSMS && currentPage == "internal") {
                   // handleSendSMS();
-                  sendEmail(url);
+                  if (!multipe) {
+                    sendEmail(url);
+                  }
                 }
                 handleSubmit(url);
               }
@@ -378,6 +409,17 @@ const Outgoing = () => {
       } else {
         handleSubmit();
       }
+    };
+
+    const handleSelectedUsers = (user) => {
+      setSelectedUsers((prevSelectedUsers) => {
+        const userIndex = prevSelectedUsers.findIndex((u) => u.id === user.id);
+        if (userIndex !== -1) {
+          return prevSelectedUsers.filter((u) => u.id !== user.id);
+        } else {
+          return [...prevSelectedUsers, user];
+        }
+      });
     };
 
     return (
@@ -426,44 +468,87 @@ const Outgoing = () => {
               className="mb-3"
               disabled
             />
-            <Form.Label>Reciever</Form.Label>
+            <ListGroup horizontal className="my-2">
+              <ListGroup.Item
+                className={!multipe ? "bg-primary" : ""}
+                onClick={() => {
+                  setMultiple(false);
+                  setSelectedUsers([]);
+                }}
+              >
+                Single
+              </ListGroup.Item>
+              <ListGroup.Item
+                className={multipe ? "bg-primary" : ""}
+                onClick={() => setMultiple(true)}
+              >
+                Multiple
+              </ListGroup.Item>
+            </ListGroup>
 
             {currentPage == "internal" && (
-              <Form.Select
-                onChange={(e) => setReciever(e.target.value)}
-                className="mb-3"
-              >
-                <option key={0} value={0}>
-                  Please select a reciever
-                </option>
-                <option
-                  className="bg-primary text-white"
-                  key={0}
-                  value={props.currentUser.uid}
-                >
-                  Send to all
-                </option>
-                {users &&
-                  users.map((user) => {
-                    if (
-                      user.id !== props.currentUser.uid &&
-                      getOfficeStatus(user.office) == "Active"
-                    ) {
-                      return (
-                        <option
-                          className={`${
-                            user.role == "admin" ? "bg-info text-white" : ""
-                          }`}
-                          key={user.id}
-                          value={user.id}
-                        >
-                          {user.fullName}
-                        </option>
-                      );
-                    }
-                  })}
-              </Form.Select>
+              <>
+                {!multipe ? (
+                  <Form.Select
+                    onChange={(e) => setReciever(e.target.value)}
+                    className="mb-3"
+                  >
+                    <option key={0} value={0}>
+                      Please select a receiever
+                    </option>
+                    <option
+                      className="bg-primary text-white"
+                      key={0}
+                      value={props.currentUser.uid}
+                    >
+                      Send to all
+                    </option>
+                    {users &&
+                      users.map((user) => {
+                        if (
+                          user.id !== props.currentUser.uid &&
+                          getOfficeStatus(user.office) == "Active"
+                        ) {
+                          return (
+                            <option
+                              className={`${
+                                user.role == "admin" ? "bg-info text-white" : ""
+                              }`}
+                              key={user.id}
+                              value={user.id}
+                            >
+                              {user.fullName}
+                            </option>
+                          );
+                        }
+                      })}
+                  </Form.Select>
+                ) : (
+                  <div className="row">
+                    {users.map((user) => {
+                      if (user.id !== auth.currentUser.uid) {
+                        return (
+                          <div className="col-lg-4">
+                            <InputGroup className="mb-3 bg-seconary">
+                              <Form.Control
+                                className="bg-primary"
+                                value={user.fullName}
+                                aria-label="Text input with checkbox"
+                              />
+                              <InputGroup.Checkbox
+                                onChange={() => handleSelectedUsers(user)}
+                                aria-label="Checkbox for following text input"
+                              />
+                            </InputGroup>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
+              </>
             )}
+
             {currentPage == "external" && (
               <Form.Control
                 type="text"
@@ -545,9 +630,10 @@ const Outgoing = () => {
               </div>
               <div className="col-lg-6">
                 <Form.Label>Due Date (Optional)</Form.Label>
-                <Form.Control
-                  onChange={(e) => setDueDate(e.target.value)}
-                  type="date"
+                <Datetime
+                  onChange={(e) => {
+                    setDueDate(moment(e).format("LLL"));
+                  }}
                 />
               </div>
               <div className="col-lg-6">
@@ -567,7 +653,6 @@ const Outgoing = () => {
                 <Form.Label>Document Flow</Form.Label>
                 <Form.Control
                   type="text"
-                  onChange={(e) => setDocumentFlow(e.target.value)}
                   className="mb-3"
                   defaultValue={
                     currentPage === "internal" ? "Internal" : "External"
@@ -598,6 +683,21 @@ const Outgoing = () => {
         )}
 
         <Modal.Footer>
+          {!loading && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (validateForm()) {
+                  setShow(true);
+                } else {
+                  toast.error("Pleae fill up the form completely");
+                }
+              }}
+            >
+              Send Message
+            </Button>
+          )}
+
           <ConfirmationModal />
         </Modal.Footer>
       </Modal>
@@ -887,6 +987,7 @@ const Outgoing = () => {
           </div>
           <div className="col-lg-4 flex justify-content-end">
             <img
+              style={{ width: "150px", cursor: "pointer" }}
               onClick={() => setModalShow(true)}
               className="mx-3"
               src="./assets/images/Group 8779.png"

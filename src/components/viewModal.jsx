@@ -3,13 +3,16 @@ import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
 import { FaBook, FaEye, FaUser } from "react-icons/fa";
 import Badge from "react-bootstrap/Badge";
-import { ModalBody, Spinner } from "react-bootstrap";
+import { ModalBody, Spinner, Table } from "react-bootstrap";
 import {
   addDoc,
   collection,
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
+  orderBy,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -33,12 +36,12 @@ function ViewFile({ file }) {
     }
   };
 
-  const isPDF = () => file.toLowerCase().endsWith('.pdf');
+  const isPDF = () => file.toLowerCase().endsWith(".pdf");
 
   const downloadFile = () => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = file;
-    link.download = file.split('/').pop();
+    link.download = file.split("/").pop();
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -60,6 +63,26 @@ function ViewModal(props) {
     currentMessage.status == "Pending" ||
     currentMessage.status == "In Progress";
 
+  const sendAll = currentMessage.sender == currentMessage.reciever;
+
+  const remarksRef = collection(db, "remarks", "allRemarks", currentMessage.id);
+  const allReceiverCollection = collection(
+    db,
+    "routing",
+    currentMessage.id,
+    "sendAll",
+    "receivers",
+    "allReceivers"
+  );
+  const allRejectorsCollection = collection(
+    db,
+    "routing",
+    currentMessage.id,
+    "sendAll",
+    "rejectors",
+    "allRejectors"
+  );
+
   const [sender, setSender] = useState("");
   const [reciever, setReciever] = useState("");
   const [remarks, setRemarks] = useState("");
@@ -68,6 +91,15 @@ function ViewModal(props) {
   const [file, setFile] = useState(null);
   const [confirmation, setConfirmation] = useState(false);
   const [action, setAction] = useState(null);
+  const [routing, setRouting] = useState();
+  const [allCreated, setAllCreated] = useState();
+  const [allSeeners, setAllSeeners] = useState([]);
+  const [allRemarks, setAllRemarks] = useState([]);
+  const [allReceiver, setAllReceiver] = useState([]);
+  const [allRejectors, setAllRejectors] = useState([]);
+  const [isDeadline, setIsDeadline] = useState(false);
+  const [reason, setReason] = useState("");
+  const [reasonData, setReasonData] = useState("");
 
   function Confirmation() {
     return (
@@ -128,6 +160,86 @@ function ViewModal(props) {
     }
   }, []);
 
+  useEffect(() => {
+    const q = query(
+      collection(db, "routing", currentMessage.id, currentMessage.id),
+      orderBy("createdAt", "asc")
+    );
+    onSnapshot(q, (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setRouting(output);
+    });
+
+    const allCreatedRef = doc(
+      db,
+      "routing",
+      currentMessage.id,
+      "sendAll",
+      "created"
+    );
+    getDoc(allCreatedRef).then((res) => {
+      setAllCreated(res.data());
+    });
+
+    const q2 = query(
+      collection(
+        db,
+        "routing",
+        currentMessage.id,
+        "sendAll",
+        "seeners",
+        "AllSeeners"
+      ),
+      orderBy("createdAt", "asc")
+    );
+    onSnapshot(q2, (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setAllSeeners(output);
+    });
+
+    const q3 = query(remarksRef, orderBy("createdAt", "asc"));
+    onSnapshot(q3, (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setAllRemarks(output);
+    });
+
+    const q4 = query(allReceiverCollection, orderBy("createdAt", "asc"));
+    onSnapshot(q4, (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setAllReceiver(output);
+    });
+    const q5 = query(allRejectorsCollection, orderBy("createdAt", "asc"));
+    onSnapshot(q5, (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setAllRejectors(output);
+    });
+
+    //Check if deadline or not
+    const dateNow = moment();
+    const deadline = moment(currentMessage.dueDate);
+    const isDue = deadline.isBefore(dateNow);
+    setIsDeadline(isDue);
+
+    onSnapshot(doc(db, "reason", currentMessage.id), (res) => {
+      setReason(res.data().remarks);
+    });
+  }, [currentMessage]);
+
   const handleAction = async (type) => {
     const user = props.getUser(currentMessage.sender);
     const office = getOffice(user.office);
@@ -138,11 +250,53 @@ function ViewModal(props) {
         message: currentMessage,
         status: "Received",
       });
+
+      addDoc(remarksRef, {
+        createdAt: serverTimestamp(),
+        remarks: remarks,
+        user: auth.currentUser.uid,
+      });
+
+      const receiverCollection = collection(
+        db,
+        "routing",
+        currentMessage.id,
+        "sendAll",
+        "receivers",
+        "allReceivers"
+      );
+
+      addDoc(receiverCollection, {
+        createdAt: serverTimestamp(),
+        message: currentMessage,
+        status: "Received",
+        seener: props.getUser(auth.currentUser.uid).fullName,
+      });
     } else {
       addDoc(collection(db, "routing", currentMessage.id, currentMessage.id), {
         createdAt: serverTimestamp(),
         message: currentMessage,
         status: "Rejected",
+      });
+      addDoc(remarksRef, {
+        createdAt: serverTimestamp(),
+        remarks: remarks,
+        user: auth.currentUser.uid,
+      });
+      const receiverCollection = collection(
+        db,
+        "routing",
+        currentMessage.id,
+        "sendAll",
+        "rejectors",
+        "allRejectors"
+      );
+
+      addDoc(receiverCollection, {
+        createdAt: serverTimestamp(),
+        message: currentMessage,
+        status: "Rejected",
+        seener: props.getUser(auth.currentUser.uid).fullName,
       });
     }
 
@@ -153,6 +307,7 @@ function ViewModal(props) {
         {
           status: type,
           remarks: remarks,
+          dateResolve: serverTimestamp(),
         },
         { merge: true }
       );
@@ -173,7 +328,7 @@ function ViewModal(props) {
         const folderData = {
           owner: auth.currentUser.uid,
           isFolder: true,
-          name: office.officeName,
+          fileName: office.officeName,
           createdAt: serverTimestamp(),
         };
 
@@ -214,8 +369,29 @@ function ViewModal(props) {
         fileUrl: url,
         fileName: file.name,
         status: "Pending",
-        remarks: remarks,
       });
+
+      // Routing
+      const docRef = collection(
+        db,
+        "routing",
+        currentMessage.id,
+        currentMessage.id
+      );
+      addDoc(docRef, {
+        createdAt: serverTimestamp(),
+        message: currentMessage,
+        status: "Pending",
+      });
+
+      //Remarks
+
+      addDoc(remarksRef, {
+        createdAt: serverTimestamp(),
+        remarks: remarks,
+        user: auth.currentUser.uid,
+      });
+
       props.closeModal();
       props.resetCurrentMessage();
     } else {
@@ -250,6 +426,21 @@ function ViewModal(props) {
       setLoading(false);
     }
   };
+
+  const handleReason = () => {
+    setLoading(true);
+    setDoc(doc(db, "reason", currentMessage.id), {
+      createdAt: serverTimestamp(),
+      remarks: reasonData,
+      user: auth.currentUser.uid,
+    });
+    setLoading(false);
+  };
+
+  const filteredSeeners = allSeeners.filter(
+    (obj, index, self) =>
+      index === self.findIndex((o) => o.seener === obj.seener)
+  );
 
   return (
     <>
@@ -469,6 +660,43 @@ function ViewModal(props) {
                 </h5>
               </div>
             )}
+            {isDeadline && (
+              <div className="col-12 my-3">
+                {currentMessage.reciever == auth.currentUser.uid && (
+                  <div className="wrapper d-flex justify-content-left align-items-center flex-column ">
+                    <label htmlFor="" className="align-self-start mb-2">
+                      This message is overdue, please state your reason.
+                    </label>
+                    <div className="wrapper w-100 d-flex">
+                      <input
+                        onChange={(e) => setReasonData(e.target.value)}
+                        type="text"
+                        className="form-control border border-danger"
+                      />
+                      <button
+                        onClick={handleReason}
+                        className="btn btn-primary  mb-0 mx-3"
+                      >
+                        {loading ? (
+                          <Spinner animation="border" variant="secondary" />
+                        ) : (
+                          "Send"
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <h5>Reason for overdue</h5>
+
+                <textarea
+                  rows={3}
+                  value={reason}
+                  type="text"
+                  placeholder="You reason goes here..."
+                  className="form-control bg-danger my-3 text-white"
+                />
+              </div>
+            )}
 
             <div className="content">
               {currentMessage.reciever == auth.currentUser.uid && (
@@ -484,18 +712,159 @@ function ViewModal(props) {
                 </div>
               )}
 
-              <div className="form-wrapper">
-                <label htmlFor="">Document Remarks</label>
-                <textarea
-                  disabled
-                  onChange={(e) => setRemarks(e.target.value)}
-                  value={currentMessage.remarks}
-                  rows={4}
-                  type="text"
-                  className="form-control"
-                />
-              </div>
+              {!sendAll && (
+                <div className="form-wrapper">
+                  <h5>Document Remarks</h5>
+                  <div className="remarks-wrapper  py-3 shadow my-3 px-5 d-flex flex-column justify-content-center align-items-center">
+                    {allRemarks &&
+                      allRemarks.map((remark, index) => {
+                        const own = remark.user == auth.currentUser.uid;
+
+                        return (
+                          <div
+                            key={index}
+                            className={`div  px-3 py-2 my-2 ${
+                              own
+                                ? "align-self-end bg-primary"
+                                : "align-self-start bg-info"
+                            }`}
+                            style={{ borderRadius: "10px" }}
+                          >
+                            <p className="mb-0">{remark.remarks}</p>
+                            {remark.createdAt && (
+                              <p className="mb-0" style={{ fontSize: "9px" }}>
+                                {moment(remark.createdAt.toDate()).format(
+                                  "LLL"
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
+          <div className="audit mt-3">
+            <h5>Document Logs</h5>
+            <Table>
+              <thead>
+                <tr>
+                  <th>Date and time</th>
+                  <th>Document Code</th>
+
+                  {sendAll && <th>User</th>}
+                  <th>Subject</th>
+                  <th>File Name</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              {!sendAll && routing && (
+                <tbody>
+                  {routing &&
+                    routing.map((route, index) => {
+                      return (
+                        <tr key={index}>
+                          <td>
+                            {route.createdAt && (
+                              <p>
+                                {moment(route.createdAt.toDate()).format("LLL")}
+                              </p>
+                            )}
+                          </td>
+                          <td>#{route.message.code}</td>
+                          <td>{route.message.subject}</td>
+                          <td>{route.message.fileName}</td>
+                          <td>{route.status}</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              )}
+              {sendAll && allCreated && (
+                <tbody>
+                  <tr>
+                    <td>
+                      {allCreated.createdAt && (
+                        <p>
+                          {moment(allCreated.createdAt.toDate()).format("LLL")}
+                        </p>
+                      )}
+                    </td>
+                    <td>#{allCreated.message.code}</td>
+                    <td>{allCreated.user}</td>
+
+                    <td>{allCreated.message.subject}</td>
+                    <td>{allCreated.message.fileName}</td>
+                    <td>{allCreated.status}</td>
+                  </tr>
+                  {allSeeners &&
+                    filteredSeeners.map((seener) => {
+                      return (
+                        <tr>
+                          <td>
+                            {seener.createdAt && (
+                              <p>
+                                {moment(seener.createdAt.toDate()).format(
+                                  "LLL"
+                                )}
+                              </p>
+                            )}
+                          </td>
+                          <td>#{seener.message.code}</td>
+                          <td>{seener.seener}</td>
+                          <td>{seener.message.subject}</td>
+                          <td>{seener.message.fileName}</td>
+                          <td>{seener.status}</td>
+                        </tr>
+                      );
+                    })}
+                  {allReceiver &&
+                    allReceiver.map((seener) => {
+                      return (
+                        <tr>
+                          <td>
+                            {seener.createdAt && (
+                              <p>
+                                {moment(seener.createdAt.toDate()).format(
+                                  "LLL"
+                                )}
+                              </p>
+                            )}
+                          </td>
+                          <td>#{seener.message.code}</td>
+                          <td>{seener.seener}</td>
+                          <td>{seener.message.subject}</td>
+                          <td>{seener.message.fileName}</td>
+                          <td>{seener.status}</td>
+                        </tr>
+                      );
+                    })}
+                  {allRejectors &&
+                    allRejectors.map((seener) => {
+                      return (
+                        <tr>
+                          <td>
+                            {seener.createdAt && (
+                              <p>
+                                {moment(seener.createdAt.toDate()).format(
+                                  "LLL"
+                                )}
+                              </p>
+                            )}
+                          </td>
+                          <td>#{seener.message.code}</td>
+                          <td>{seener.seener}</td>
+                          <td>{seener.message.subject}</td>
+                          <td>{seener.message.fileName}</td>
+                          <td>{seener.status}</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              )}
+            </Table>
           </div>
         </Modal.Body>
         {!props.outgoing && (
@@ -503,7 +872,7 @@ function ViewModal(props) {
             <div className="row w-100">
               <div className="col-lg-6 flex">
                 <Button
-                  disabled={!isDisable}
+                  disabled={!isDisable && !sendAll}
                   onClick={() => {
                     setAction("Rejected");
                     setConfirmation(true);
@@ -516,7 +885,7 @@ function ViewModal(props) {
               </div>
               <div className="col-lg-6 flex">
                 <Button
-                  disabled={!isDisable}
+                  disabled={!isDisable && !sendAll}
                   onClick={() => {
                     setAction("Received");
                     setConfirmation(true);
