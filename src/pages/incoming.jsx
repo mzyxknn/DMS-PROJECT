@@ -68,7 +68,6 @@ const incoming = () => {
   const [currentClassification, setCurrentClassification] = useState("");
   const [classificationData, setClassificationData] = useState([]);
 
-
   const handleSeen = async (message) => {
     const docRef = doc(db, "routing", message.id, message.id, message.id);
     const seener = getUser(auth.currentUser.uid).fullName;
@@ -78,7 +77,7 @@ const incoming = () => {
         createdAt: serverTimestamp(),
         message: message,
         status: "Seen",
-        seener: seener
+        seener: seener,
       });
     }
   };
@@ -617,7 +616,7 @@ const incoming = () => {
     });
 
     setUsers(output);
-    
+
     onSnapshot(collection(db, "classification"), (snapshot) => {
       const output = [];
       snapshot.docs.forEach((doc) => {
@@ -720,7 +719,6 @@ const incoming = () => {
     }
   });
 
-
   const classificationFilteredInternal = filteredMessages.filter((message) => {
     if (currentClassification == "") {
       return message;
@@ -729,14 +727,16 @@ const incoming = () => {
       return message;
     }
   });
-  const classificationFilteredExternal = filteredExternalMessages.filter((message) => {
-    if (currentClassification == "") {
-      return message;
+  const classificationFilteredExternal = filteredExternalMessages.filter(
+    (message) => {
+      if (currentClassification == "") {
+        return message;
+      }
+      if (message.classification == currentClassification) {
+        return message;
+      }
     }
-    if (message.classification == currentClassification) {
-      return message;
-    }
-  });
+  );
 
   return (
     <Layout>
@@ -776,33 +776,33 @@ const incoming = () => {
         />
       )}
 
-      <div className="dashboard">
-        <div className="dashboard-content mx-3 mt-3">
-          <div className="row">
-            <div className="wrapper col-lg-8">
+<div className="dashboard">
+        <div className="row">
+          <div className="col-lg-8">
+            <div className="wrapper">
               <h2 className="fw-bold my-3 mx-2">
-                Incoming Messages
-                <FaFacebookMessenger className="mx-2" />
+                Incoming Documents
+                <FaInbox className="mx-2" />
               </h2>
               <div
                 className="bg-info mx-2 mb-3"
                 style={{ width: "200px", height: "10px", borderRadius: 20 }}
               ></div>
             </div>
-            {currentPage == "external" && (
-              <div className="col-lg-4 flex justify-content-end">
-                <img
-                  style={{ width: "150px", cursor: "pointer" }}
-                  onClick={() => setComposeModalOpen(true)}
-                  className="mx-3"
-                  src="./assets/images/Group 8779.png"
-                  alt=""
-                />
-              </div>
-            )}
           </div>
+          <div className="col-lg-4 flex justify-content-end">
+            <img
+              style={{ width: "150px", cursor: "pointer" }}
+              onClick={() => setModalShow(true)}
+              className="mx-3"
+              src="./assets/images/Group 8779.png"
+              alt=""
+            />
+          </div>
+        </div>
+        <div className="dashboard-content mx-3 mt-3">
           <div className="row">
-            <div className="col-lg-5">
+            <div className="col-lg-4 flex display-flex">
               <ListGroup horizontal>
                 <ListGroup.Item
                   className={`${
@@ -820,7 +820,9 @@ const incoming = () => {
                 >
                   External
                 </ListGroup.Item>
-                <ListGroup.Item style={{ border: "none" }}>
+              </ListGroup>
+              <ListGroup>
+              <ListGroup.Item style={{ border: "none" }}>
                   <Form.Select
                     aria-label="Default select example"
                     onChange={(e) => setCurrentClassification(e.target.value)}
@@ -838,9 +840,8 @@ const incoming = () => {
                   </Form.Select>
                 </ListGroup.Item>
               </ListGroup>
-              
             </div>
-            <div className="col-lg-2">
+            <div className="col-lg-1 flex display-flex">
               <Button
                 className="mx-0 mx-lg-3 my-3"
                 onClick={() => {
@@ -854,7 +855,7 @@ const incoming = () => {
                 Sort {sort}
               </Button>
             </div>
-            <div className="col-lg-5">
+            <div className="col-lg-7 flex display-flex gap-2">
               <div className="search flex w-100 ">
                 <input
                   onChange={(e) => setSearch(e.target.value)}
@@ -866,6 +867,7 @@ const incoming = () => {
               </div>
             </div>
           </div>
+
           {loading && <PlaceHolder />}
 
           {currentPage == "internal" ? (
@@ -884,7 +886,7 @@ const incoming = () => {
                 </tr>
               </thead>
               <tbody>
-              {classificationFilteredInternal.map((message) => {
+                {classificationFilteredInternal.map((message) => {
                   return (
                     <tr key={message.code}>
                       <td>

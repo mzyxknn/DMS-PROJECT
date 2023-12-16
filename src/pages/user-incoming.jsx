@@ -839,6 +839,25 @@ const UserIncoming = () => {
                 </ListGroup.Item>
                 
               </ListGroup>
+              <ListGroup>
+              <ListGroup.Item style={{ border: "none" }}>
+                  <Form.Select
+                    aria-label="Default select example"
+                    onChange={(e) => setCurrentClassification(e.target.value)}
+                  >
+                    <option key={0} value={""}>
+                      Please select classification
+                    </option>{" "}
+                    {classificationData.map((item) => {
+                      return (
+                        <option key={item.value} value={item.value}>
+                          {item.value}
+                        </option>
+                      );
+                    })}
+                  </Form.Select>
+                </ListGroup.Item>
+              </ListGroup>
               {currentPage === "internal" && (
                 <ListGroup className="col-lg-5 p-0 m-0">
                   <ListGroup.Item style={{ border: "none" }}>
@@ -1003,7 +1022,7 @@ const UserIncoming = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredExternalMessages.map((message) => {
+                {classificationFilteredExternal.map((message) => {
                   return (
                     <tr key={message.code}>
                       <td>

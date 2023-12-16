@@ -47,7 +47,6 @@ import Datetime from "react-datetime";
 import "react-datetime/css/react-datetime.css";
 const userCollectionRef = collection(db, "users");
 const messagesCollectionRef = collection(db, "messages");
-const outgoingExternal = collection(db, "outgoing-external");
 const officeCollection = collection(db, "offices");
 const UserOutgoing = () => {
   const [modalShow, setModalShow] = useState(false);
@@ -59,7 +58,6 @@ const UserOutgoing = () => {
   const [loading, setLoading] = useState(false);
   const [enableSMS, setEnableSMS] = useState(false);
   const [currentPage, setCurrentPage] = useState("internal");
-  const [externalMessages, setExternalMessages] = useState([]);
   const [search, setSearch] = useState("");
   const [deleteModal, setDeleteModal] = useState(false);
   const [offices, setOffices] = useState([]);
@@ -68,7 +66,6 @@ const UserOutgoing = () => {
   const [subClassificationData, setSubClassificationData] = useState([]);
   const [actionData, setActionData] = useState([]);
 
-  
   const sortData = () => {
     const sortedData = [...messages].sort((a, b) => {
       if (sort === "a-z") {
@@ -77,23 +74,12 @@ const UserOutgoing = () => {
         return b.subject.localeCompare(a.subject);
       }
     });
-
-    const sortedDataExternal = [...externalMessages].sort((a, b) => {
-      if (sort === "a-z") {
-        return a.subject.localeCompare(b.subject);
-      } else {
-        return b.subject.localeCompare(a.subject);
-      }
-    });
-
     setMessages(sortedData);
-    setExternalMessages(sortedDataExternal);
   };
 
   useEffect(() => {
     sortData();
   }, [sort]);
-
 
   const getOfficeStatus = (id) => {
     const office = offices.filter((office) => {
@@ -153,20 +139,38 @@ const UserOutgoing = () => {
       setCode(code.toString());
     };
     const validateForm = () => {
-      if (
-        code &&
-        (reciever || selectedUsers.length >= 1) &&
-        subject &&
-        prioritization &&
-        classification &&
-        subClassification &&
-        action &&
-        deliverType &&
-        attachmentDetail
-      ) {
-        return true;
+      if (!multipe) {
+        // Check for validation only when multipe is false
+        if (
+          code &&
+          (reciever || selectedUsers.length >= 1) &&
+          subject &&
+          prioritization &&
+          classification &&
+          subClassification &&
+          action &&
+          deliverType &&
+          attachmentDetail
+        ) {
+          return true;
+        } else {
+          return false;
+        }
       } else {
-        return false;
+        if (
+          (reciever || selectedUsers.length >= 1) &&
+          subject &&
+          prioritization &&
+          classification &&
+          subClassification &&
+          action &&
+          deliverType &&
+          attachmentDetail
+        ) {
+          return true;
+        } else {
+          return false;
+        }
       }
     };
     function ConfirmationModal() {
@@ -275,6 +279,7 @@ const UserOutgoing = () => {
       if (!file) {
         documentState = "In Progress";
       }
+
       try {
         const dataObject = {
           code: code || null,
@@ -297,19 +302,21 @@ const UserOutgoing = () => {
           createdAt: serverTimestamp(),
           isSendToALl: props.currentUser.uid === reciever,
         };
+
         if (currentPage == "internal") {
           if (!multipe) {
             addDoc(messagesCollectionRef, dataObject).then((document) => {
               const isAll = props.currentUser.uid == reciever;
               if (!isAll) {
+                setModalShow(false);
                 addDoc(collection(db, "routing", document.id, document.id), {
                   createdAt: serverTimestamp(),
                   message: dataObject,
                   status: "Created",
                 });
                 toast.success("Your message is succesfully sent!");
-                setModalShow(false);
               } else {
+                setModalShow(false);
                 const docRef = doc(
                   db,
                   "routing",
@@ -323,10 +330,11 @@ const UserOutgoing = () => {
                   status: "Created",
                   user: getUser(auth.currentUser.uid).fullName,
                 });
-                setModalShow(false);
               }
             });
           } else {
+            setModalShow(false);
+
             selectedUsers.map((user) => {
               const dataObjectCopy = { ...dataObject };
               dataObjectCopy["reciever"] = user.id;
@@ -337,15 +345,14 @@ const UserOutgoing = () => {
                   status: "Created",
                 });
                 toast.success("Your message is succesfully sent!");
-                setModalShow(false);
               });
               sendEmail(fileUrl, user);
             });
           }
         } else {
+          setModalShow(false);
           addDoc(outgoingExternal, dataObject).then(() => {
             toast.success("Your message is succesfully sent!");
-            setModalShow(false);
           });
         }
       } catch (error) {
@@ -368,31 +375,117 @@ const UserOutgoing = () => {
       // console.log("File:", file);
     };
     const handleUpload = async () => {
-      setLoading(true);
       setShow(false);
-      if (file) {
+      setLoading(true);
+
+      const generateRandomCode = () => {
+        const min = 1000;
+        const max = 99999;
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      };
+
+      const generateCodeForUser = () => {
+        return generateRandomCode().toString();
+      };
+
+      const uploadFile = async (file) => {
         const storageRef = ref(storage, `uploads/${file.name}`);
-        uploadBytes(storageRef, file).then((snapshot) => {
-          getDownloadURL(storageRef)
-            .then((url) => {
-              if (url) {
-                if (enableSMS && currentPage == "internal") {
-                  // handleSendSMS();
-                  if (!multipe) {
-                    sendEmail(url);
-                  }
-                }
-                handleSubmit(url);
-              }
-            })
-            .catch((error) => {
-              console.error("Error getting download URL:", error);
-            });
-        });
-      } else {
-        handleSubmit();
+        try {
+          const snapshot = await uploadBytes(storageRef, file);
+          const fileUrl = await getDownloadURL(snapshot.ref);
+          return fileUrl;
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          throw new Error("Error uploading file. Please try again.");
+        }
+      };
+
+      const handleDocumentForUser = async (user, fileUrl) => {
+        try {
+          const dataObjectCopy = {
+            code: generateCodeForUser(),
+            sender: props.currentUser.uid || null,
+            reciever: user.id,
+            subject,
+            description,
+            prioritization,
+            date: serverTimestamp(),
+            classification,
+            subClassification,
+            action,
+            dueDate,
+            deliverType,
+            documentFlow: currentPage === "internal" ? "Internal" : "External",
+            attachmentDetail,
+            fileUrl: fileUrl || "N/A",
+            fileName: file.name || "N/A",
+            status: "Pending",
+            createdAt: serverTimestamp(),
+            isSendToAll: props.currentUser.uid === user.id,
+          };
+          setModalShow(false);
+          const documentRef = await addDoc(
+            messagesCollectionRef,
+            dataObjectCopy
+          );
+
+          await addDoc(
+            collection(db, "routing", documentRef.id, documentRef.id),
+            {
+              createdAt: serverTimestamp(),
+              message: dataObjectCopy,
+              status: "Created",
+            }
+          );
+
+          toast.success(
+            `Your message is successfully sent to ${user.fullName}`
+          );
+          sendEmail(fileUrl, user);
+          setModalShow(false);
+        } catch (error) {
+          console.error("Error handling document for user:", error);
+          toast.error(
+            `Error sending document to ${user.fullName}. Please try again.`
+          );
+        }
+      };
+
+      try {
+        if (file) {
+          const fileUrl = await uploadFile(file);
+
+          if (enableSMS && currentPage === "internal") {
+            if (!multipe) {
+              sendEmail(fileUrl);
+              handleSubmit(fileUrl);
+            } else {
+              // Handle multiple users
+              const promises = selectedUsers.map((user) => {
+                return handleDocumentForUser(user, fileUrl);
+              });
+
+              await Promise.all(promises);
+            }
+          } else {
+            // Continue with the existing logic for single user
+            setModalShow(false);
+            handleSubmit(fileUrl);
+          }
+        } else {
+          // Continue with the existing logic for single user
+          handleSubmit();
+        }
+      } catch (error) {
+        console.error("Error handling upload:", error);
+        toast.error(
+          error.message || "Error sending document. Please try again."
+        );
+      } finally {
+        setLoading(false);
       }
     };
+
     const handleSelectedUsers = (user) => {
       setSelectedUsers((prevSelectedUsers) => {
         const userIndex = prevSelectedUsers.findIndex((u) => u.id === user.id);
@@ -433,7 +526,9 @@ const UserOutgoing = () => {
                 type="text"
                 placeholder="Document Code"
               />
-              <Button onClick={generateRandomCode}>Generate</Button>
+              <Button disabled={multipe} onClick={generateRandomCode}>
+                Generate
+              </Button>
             </Form.Group>
             <Form.Label>Sender</Form.Label>
             <Form.Control
@@ -447,6 +542,7 @@ const UserOutgoing = () => {
               className="mb-3"
               disabled
             />
+
             <ListGroup horizontal className="my-2">
               <ListGroup.Item
                 className={!multipe ? "bg-primary" : ""}
@@ -525,13 +621,6 @@ const UserOutgoing = () => {
                   </div>
                 )}
               </>
-            )}
-
-            {currentPage == "external" && (
-              <Form.Control
-                type="text"
-                onChange={(e) => setReciever(e.target.value)}
-              />
             )}
 
             <Form.Group
@@ -829,17 +918,6 @@ const UserOutgoing = () => {
         console.error("Error listening to collection:", error);
       }
     );
-    const q2 = query(outgoingExternal, orderBy("createdAt", "desc"));
-    onSnapshot(q2, (snapshot) => {
-      const messages = [];
-      snapshot.docs.forEach((doc) => {
-        const message = { ...doc.data(), id: doc.id };
-        if (message.sender === auth.currentUser.uid) {
-          messages.push(message);
-        }
-      });
-      setExternalMessages(messages);
-    });
     setLoading(false);
   };
   const getUser = (id) => {
@@ -866,17 +944,6 @@ const UserOutgoing = () => {
       message.fileName.toLowerCase().startsWith(search.toLowerCase()) ||
       sender.fullName.toLowerCase().startsWith(search.toLowerCase()) ||
       reciever.fullName.toLowerCase().startsWith(search.toLowerCase()) ||
-      message.subject.toLowerCase().startsWith(search.toLocaleLowerCase())
-    ) {
-      return message;
-    }
-  });
-  const filteredExternalMessages = externalMessages.filter((message) => {
-    const sender = getUser(message.sender);
-    if (
-      message.code.toLowerCase().startsWith(search.toLowerCase()) ||
-      message.fileName.toLowerCase().startsWith(search.toLowerCase()) ||
-      sender.fullName.toLowerCase().startsWith(search.toLowerCase()) ||
       message.subject.toLowerCase().startsWith(search.toLocaleLowerCase())
     ) {
       return message;
@@ -916,13 +983,13 @@ const UserOutgoing = () => {
         <div className="row">
           <div className="col-lg-8">
             <div className="wrapper">
-              <h2 className="fw-bold my-3 mx-2">
+              <h2 className="fw-bold my-2 mx-3">
                 Outgoing Messages
                 <FaInbox className="mx-2" />
               </h2>
               <div
-                className="bg-info mx-2 mb-3"
-                style={{ width: "200px", height: "10px", borderRadius: 20 }}
+                className="bg-info mx-3 mb-3"
+                style={{ width: "350px", height: "10px", borderRadius: 20 }}
               ></div>
             </div>
           </div>
@@ -936,7 +1003,7 @@ const UserOutgoing = () => {
             />
           </div>
         </div>
-        <div className="dashboard-content mx-3 mt-3">
+        <div className="dashboard-content mx-4 mt-3">
           <div className="row">
             <div className="col-lg-5">
               <ListGroup horizontal>
@@ -945,16 +1012,9 @@ const UserOutgoing = () => {
                     currentPage == "internal" ? "bg-info text-white" : ""
                   } px-5 fw-bold`}
                   onClick={() => setCurrentPage("internal")}
+                  disabled
                 >
                   Internal
-                </ListGroup.Item>
-                <ListGroup.Item
-                  className={`${
-                    currentPage == "external" ? "bg-info text-white" : ""
-                  } px-5 fw-bold`}
-                  onClick={() => setCurrentPage("external")}
-                >
-                  External
                 </ListGroup.Item>
               </ListGroup>
             </div>
@@ -1105,86 +1165,6 @@ const UserOutgoing = () => {
                   <th>Action</th>
                 </tr>
               </thead>
-              {externalMessages && (
-                <tbody>
-                  {filteredExternalMessages.map((message) => {
-                    return (
-                      <tr key={message.code}>
-                        <td>
-                          <div className="flex">
-                            <FaFile />
-                            {message.code}
-                          </div>
-                        </td>
-                        <td>{message.subject}</td>
-                        <td
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setCurrentMessage(message);
-                            setShowViewModal(true);
-                          }}
-                        >
-                          <div
-                            style={{ textDecoration: "underline" }}
-                            className="text-dark fw-bold"
-                          >
-                            {message.fileName}
-                          </div>
-                        </td>{" "}
-                        <td>{message.reciever} -</td>
-                        <td>{message.action}</td>
-                        {message.date && (
-                          <td>{moment(message.date.toDate()).format("LLL")}</td>
-                        )}
-                        <td>
-                          <div className="flex">
-                            {" "}
-                            <Badge
-                              bg={
-                                message.prioritization == "urgent"
-                                  ? "danger"
-                                  : "info"
-                              }
-                              className="text-white p-2"
-                            >
-                              {toTitleCase(message.prioritization)}
-                            </Badge>{" "}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="flex">
-                            {message.status === "Received" && (
-                              <Badge bg="success" className="text-white p-2">
-                                {message.status}
-                              </Badge>
-                            )}
-                            {message.status === "Pending" && (
-                              <Badge bg="info" className="text-white p-2">
-                                {message.status}
-                              </Badge>
-                            )}
-                            {message.status === "Rejected" && (
-                              <Badge bg="danger" className="text-white p-2">
-                                {message.status}
-                              </Badge>
-                            )}
-                            {message.status === "In Progress" && (
-                              <Badge bg="warning" className="text-black p-2">
-                                {message.status}
-                              </Badge>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="flex">
-                            <DropdownActionExternal message={message} />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              )}
             </Table>
           )}
         </div>
