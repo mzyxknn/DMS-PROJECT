@@ -73,9 +73,10 @@ const Outgoing = () => {
   const [deleteModal, setDeleteModal] = useState(false);
   const [offices, setOffices] = useState([]);
   const [sort, setSort] = useState("a-z");
-  const [classificationData, setClassificationData] = useState([]);
   const [subClassificationData, setSubClassificationData] = useState([]);
   const [actionData, setActionData] = useState([]);
+  const [currentClassification, setCurrentClassification] = useState("");
+  const [classificationData, setClassificationData] = useState([]);
 
   const [showModal, setShowModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
