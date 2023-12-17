@@ -62,10 +62,9 @@ const UserOutgoing = () => {
   const [deleteModal, setDeleteModal] = useState(false);
   const [offices, setOffices] = useState([]);
   const [sort, setSort] = useState("a-z");
+  const [classificationData, setClassificationData] = useState([]);
   const [subClassificationData, setSubClassificationData] = useState([]);
   const [actionData, setActionData] = useState([]);
-  const [currentClassification, setCurrentClassification] = useState("");
-  const [classificationData, setClassificationData] = useState([]);
 
   const sortData = () => {
     const sortedData = [...messages].sort((a, b) => {
@@ -947,14 +946,6 @@ const UserOutgoing = () => {
       reciever.fullName.toLowerCase().startsWith(search.toLowerCase()) ||
       message.subject.toLowerCase().startsWith(search.toLocaleLowerCase())
     ) {
-      return message;
-    }
-  });
-  const classificationFilteredInternal = filteredMessages.filter((message) => {
-    if (currentClassification == "") {
-      return message;
-    }
-    if (message.classification == currentClassification) {
       return message;
     }
   });
