@@ -67,6 +67,7 @@ const UserOutgoing = () => {
   const [classificationData, setClassificationData] = useState([]);
   const [subClassificationData, setSubClassificationData] = useState([]);
   const [actionData, setActionData] = useState([]);
+  const [currentClassification, setCurrentClassification] = useState("");
 
   const sortData = () => {
     const sortedData = [...messages].sort((a, b) => {
@@ -880,6 +881,24 @@ const UserOutgoing = () => {
       return message;
     }
   });
+
+  const classificationFilteredInternal = filteredMessages.filter((message) => {
+    if (currentClassification == "") {
+      return message;
+    }
+    if (message.classification == currentClassification) {
+      return message;
+    }
+  });
+  const classificationFilteredExternal = filteredExternalMessages.filter(
+    (message) => {
+      if (currentClassification == "") {
+        return message;
+      }
+      if (message.classification == currentClassification) {
+        return message;
+      }
+    });
   return (
     <LayoutUser>
       {currentMessage && (
@@ -925,38 +944,30 @@ const UserOutgoing = () => {
             </div>
             {currentPage == "internal" && (
               <div className="col-lg-4 flex justify-content-end">
-              <img
-                style={{ width: "150px", cursor: "pointer" }}
-                onClick={() => setModalShow(true)}
-                className="mx-3"
-                src="./assets/images/Group 8779.png"
-                alt=""
-              />
-            </div>
+                <img
+                  style={{ width: "150px", cursor: "pointer" }}
+                  onClick={() => setModalShow(true)}
+                  className="mx-3"
+                  src="./assets/images/Group 8779.png"
+                  alt=""
+                />
+              </div>
             )}
-            
           </div>
           <div className="row">
-            <div className="col-lg-4 mx-2  flex display-flex">
+            <div className="col-lg-6 mx-2  flex display-flex">
               <ListGroup horizontal>
                 <ListGroup.Item
                   className={`${
                     currentPage == "internal" ? "bg-info text-white" : ""
                   } px-5 fw-bold`}
                   onClick={() => setCurrentPage("internal")}
+                  disabled
                 >
                   Internal
                 </ListGroup.Item>
-                <ListGroup.Item
-                  className={`${
-                    currentPage == "external" ? "bg-info text-white" : ""
-                  } px-5 fw-bold`}
-                  onClick={() => setCurrentPage("external")}
-                >
-                  External
-                </ListGroup.Item>
               </ListGroup>
-              <ListGroup className="col-lg-6 p-0 m-0">
+              <ListGroup className="col-lg-10 flex display-block p-0 m-0">
                 <ListGroup.Item style={{ border: "none" }}>
                   <Form.Select
                     aria-label="Default select example"
@@ -1018,7 +1029,7 @@ const UserOutgoing = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredMessages.map((message) => {
+                {classificationFilteredInternal.map((message) => {
                   return (
                     <tr key={message.code}>
                       <td>
@@ -1122,7 +1133,7 @@ const UserOutgoing = () => {
               </thead>
               {externalMessages && (
                 <tbody>
-                  {filteredExternalMessages.map((message) => {
+                  {classificationFilteredExternal.map((message) => {
                     return (
                       <tr key={message.code}>
                         <td>
