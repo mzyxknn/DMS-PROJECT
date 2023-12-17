@@ -68,7 +68,7 @@ const UserOutgoing = () => {
   const [subClassificationData, setSubClassificationData] = useState([]);
   const [actionData, setActionData] = useState([]);
 
-  
+
   const sortData = () => {
     const sortedData = [...messages].sort((a, b) => {
       if (sort === "a-z") {

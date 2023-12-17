@@ -47,6 +47,12 @@ import { InputGroup } from "react-bootstrap";
 import Datetime from "react-datetime";
 import "react-datetime/css/react-datetime.css";
 
+
+import { BarLoader } from 'react-spinners';
+
+import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
+import FileDirectoryModal from '../../src/components/FileDirectoryModal'; // Import the FileDirectoryModal component
+
 const userCollectionRef = collection(db, "users");
 const messagesCollectionRef = collection(db, "messages");
 const outgoingExternal = collection(db, "outgoing-external");
@@ -70,6 +76,24 @@ const Outgoing = () => {
   const [classificationData, setClassificationData] = useState([]);
   const [subClassificationData, setSubClassificationData] = useState([]);
   const [actionData, setActionData] = useState([]);
+
+  const [showModal, setShowModal] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  
+  const handleOpenModal = () => {
+    setShowModal(true);
+  };
+  
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
+
+  const handleSelectFile = (files) => {
+    setSelectedFiles(files);
+    handleCloseModal();
+  };
+
+  
 
   const sortData = () => {
     const sortedData = [...messages].sort((a, b) => {
@@ -149,6 +173,9 @@ const Outgoing = () => {
     const [show, setShow] = useState(false);
     const [multipe, setMultiple] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState([]);
+
+    
+  
 
     const generateRandomCode = () => {
       const min = 1000;
@@ -514,7 +541,7 @@ const Outgoing = () => {
         ) : (
           <Modal.Body>
             <div className="title bg-primary w-100">
-              <h5 className="text-white mx-3 p-2 my-3">Document Details</h5>
+              <h5 className="text-white mx-3 p-2 my-3">Details</h5>
             </div>
             <Form.Label>Document Code</Form.Label>
 
@@ -739,7 +766,7 @@ const Outgoing = () => {
               <h5 className="text-white mx-3 p-2 my-3">Attachments</h5>
             </div>
             <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
-              <Form.Label>Attachment Details</Form.Label>
+              <Form.Label>Details</Form.Label>
               <Form.Control
                 onChange={(e) => setAttachmentDetail(e.target.value)}
                 type="text"
@@ -752,6 +779,29 @@ const Outgoing = () => {
                   accept=".pdf,.docx"
                 />
               </Form.Group>
+              <Button onClick={handleOpenModal}>Choose from file directory</Button>
+              {selectedFiles.length > 0 && (
+                <div className="mt-2">Selected {selectedFiles.length} files</div>
+              )}
+
+              <Modal show={showModal} onHide={handleCloseModal}>
+                <Modal.Header closeButton>
+                  <Modal.Title>Select a File</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                  {/* Your file selection UI goes here */}
+                  <Form.Control type="file" onChange={(e) => handleSelectFile(e.target.files[0])} accept=".pdf,.docx" />
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onClick={handleCloseModal}>
+                    Close
+                  </Button>
+                  <Button variant="primary" onClick={() => handleSelectFile(selectedFile)}>
+                    Select
+                  </Button>
+                </Modal.Footer>
+              </Modal>
+
             </Form.Group>
           </Modal.Body>
         )}
@@ -1044,6 +1094,12 @@ const Outgoing = () => {
       )}
 
       <DeleteModal />
+
+      <FileDirectoryModal
+        showModal={showModal}
+        handleCloseModal={handleCloseModal}
+        handleSelectFile={handleSelectFile}
+      />
 
       <div className="dashboard">
         <div className="row">
