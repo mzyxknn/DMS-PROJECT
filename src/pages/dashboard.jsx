@@ -146,7 +146,7 @@ const Dashboard = () => {
     sortData();
   }, [sort]);
 
-  function DropdownAction({ message }) {
+ /*  function DropdownAction({ message }) {
     const downloadFIle = () => {
       const fileUrl = message.fileUrl;
       const link = document.createElement("a");
@@ -174,7 +174,7 @@ const Dashboard = () => {
       <FaRoute size={20} />
     </Button>
     );
-  }
+  } */
 
   const getUser = async () => {
     const userRef = doc(db, "users", auth.currentUser.uid);
@@ -184,6 +184,12 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    const snapshot = await getDocs(userCollectionRef);
+    const output = snapshot.docs.map((doc) => {
+      return { id: doc.id, ...doc.data() };
+    });
+
+    setUsers(output);
 
     // getDoc(doc(db, "sms", "sms")).then((doc) => {
     //   console.log(doc.data());
@@ -197,13 +203,6 @@ const Dashboard = () => {
       setClassificationData(output);
     });
 
-    const snapshot = await getDocs(userCollectionRef);
-    const output = snapshot.docs.map((doc) => {
-      return { id: doc.id, ...doc.data() };
-    });
-
-    setUsers(output);
-
     const q = query(messagesCollectionRef, orderBy("createdAt", "desc"));
 
     onSnapshot(
@@ -213,25 +212,30 @@ const Dashboard = () => {
         const urgents = [];
         querySnapshot.forEach((doc) => {
           const message = { ...doc.data(), id: doc.id };
-          messages.push(message);
           if (
-            message.prioritization == "urgent" &&
-            message.status == "Pending"
+            message.reciever == auth.currentUser.uid ||
+            message.sender == message.reciever
           ) {
-            urgents.push(message);
+            messages.push(message);
+            if (
+              message.prioritization == "urgent" &&
+              message.status == "Pending"
+            ) {
+              urgents.push(message);
+            }
           }
         });
+        
+        setUrgentFiles(urgents);
+        setMessages(messages);
         if (urgents.length >= 1) {
           setUrgent(true);
         }
-        setUrgentFiles(urgents);
-        setMessages(messages);
       },
       (error) => {
         console.error("Error listening to collection:", error);
       }
     );
-
     onSnapshot(collection(db, "offices"), (snapshot) => {
       const output = [];
       snapshot.docs.forEach((doc) => {
@@ -498,7 +502,6 @@ const Dashboard = () => {
                   <th>Date </th>
                   <th>Prioritization</th>
                   <th>Status</th>
-                  <th>Routing</th>
                 </tr>
               </thead>
               <tbody>
@@ -506,18 +509,18 @@ const Dashboard = () => {
                   return (
                     <tr key={message.code}>
                       <td>
-                        <div className="flex">
+                        <div className="flex p-1 m-1 justify-content-center">
                           <FaFile />
                           {message.code}
                         </div>
                       </td>
                       <td>{message.subject}</td>
                       <td
-                      /* style={{ cursor: "pointer" }}
+                       style={{ cursor: "pointer" }}
                         onClick={() => {
                           setCurrentMessage(message);
-                          setShowViewModal(true);
-                        }} */
+                          setShowRouting(true);
+                        }} 
                       >
                         <div
                           /* style={{ textDecoration: "underline" }} */
@@ -528,7 +531,7 @@ const Dashboard = () => {
                       </td>
                       <td>{message.documentFlow}</td>
                       <td>
-                        {getUserData(message.sender).fullName} -{" "}
+                        {getUserData(message.sender).fullName}{" "}
                         <b> {getUserData(message.sender).position}</b>
                       </td>
                       <td>
@@ -583,11 +586,11 @@ const Dashboard = () => {
                           )}
                         </div>
                       </td>
-                      <td>
+                      {/* <td>
                         <div className="flex">
                           <DropdownAction message={message} />
                         </div>
-                      </td>
+                      </td> */}
                     </tr>
                   );
                 })}
