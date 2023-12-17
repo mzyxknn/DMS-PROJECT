@@ -67,6 +67,8 @@ const UserIncoming = () => {
   const [sort, setSort] = useState("a-z");
   const [currentClassification, setCurrentClassification] = useState("");
   const [classificationData, setClassificationData] = useState([]);
+  const [subClassificationData, setSubClassificationData] = useState([]);
+  const [actionData, setActionData] = useState([]);
 
   const handleSeen = async (message) => {
     const isAll = message.reciever == message.sender;
@@ -420,55 +422,38 @@ const UserIncoming = () => {
 
               <div className="col-lg-6">
                 <Form.Label>Classification</Form.Label>
-
                 <Form.Select
                   onChange={(e) => setClassification(e.target.value)}
                   className="mb-3"
                 >
                   <option>Please select an option</option>
-                  <option value="memorandum">Memorandum</option>
-                  <option value="letter">Letter</option>
-                  <option value="indorsement/transmittal">
-                    Indorsement/Transmittal
-                  </option>
+                  {classificationData.map((value) => {
+                    return <option value={value.value}>{value.value}</option>;
+                  })}
                 </Form.Select>
               </div>
               <div className="col-lg-6">
                 <Form.Label>Sub Classification</Form.Label>
-
                 <Form.Select
                   onChange={(e) => setSubClassification(e.target.value)}
                   className="mb-3"
                 >
                   <option>Please select an option</option>
-                  <option value="compliance">For Compliance</option>
-                  <option value="information">For Information</option>
-                  <option value="inquiry">Inquiry</option>
-                  <option value="invitation">Invitation</option>
-                  <option value="request">Request</option>
-                  <option value="others">Others</option>
+                  {subClassificationData.map((value) => {
+                    return <option value={value.value}>{value.value}</option>;
+                  })}
                 </Form.Select>
               </div>
               <div className="col-lg-6">
                 <Form.Label>Action</Form.Label>
-
                 <Form.Select
                   onChange={(e) => setAction(e.target.value)}
                   className="mb-3"
                 >
                   <option>Please select an option</option>
-                  <option value="For Submission of Documents">
-                    For Submission of Documents
-                  </option>
-                  <option value="For Approval/Signature">
-                    For Approval/Signature
-                  </option>
-                  <option value="For Monitoring">For Monitoring</option>
-                  <option value="For Comment/Justification">
-                    For Comment/Justification
-                  </option>
-                  <option value="For Considilation">For Considilation</option>
-                  <option value="For Printing">For Printing</option>
+                  {actionData.map((value) => {
+                    return <option value={value.value}>{value.value}</option>;
+                  })}
                 </Form.Select>
               </div>
               <div className="col-lg-6">
@@ -641,6 +626,20 @@ const UserIncoming = () => {
       });
       setClassificationData(output);
     });
+    onSnapshot(collection(db, "sub-classification"), (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setSubClassificationData(output);
+    });
+    onSnapshot(collection(db, "action"), (snapshot) => {
+      const output = [];
+      snapshot.docs.forEach((doc) => {
+        output.push({ ...doc.data(), id: doc.id });
+      });
+      setActionData(output);
+    });
 
     const q = query(messagesCollectionRef, orderBy("createdAt", "desc"));
 
@@ -798,7 +797,7 @@ const UserIncoming = () => {
           <div className="row">
             <div className="wrapper col-lg-8">
               <h2 className="fw-bold my-3 mx-2">
-                Incoming Messages
+                Incoming Documents
                 <FaFacebookMessenger className="mx-2" />
               </h2>
               <div
@@ -819,7 +818,7 @@ const UserIncoming = () => {
             )}
           </div>
           <div className="row">
-            <div className="col-lg-5">
+            <div className="col-lg-4 mx-2  flex display-flex">
               <ListGroup horizontal>
                 <ListGroup.Item
                   className={`${
@@ -839,15 +838,14 @@ const UserIncoming = () => {
                 </ListGroup.Item>
                 
               </ListGroup>
-              {currentPage === "internal" && (
-                <ListGroup className="col-lg-5 p-0 m-0">
+                <ListGroup className="col-lg-6 p-0 m-0">
                   <ListGroup.Item style={{ border: "none" }}>
                     <Form.Select
                       aria-label="Default select example"
                       onChange={(e) => setCurrentClassification(e.target.value)}
                     >
                       <option key={0} value={""}>
-                        All Classification
+                        Select Classification
                       </option>
                       {classificationData.map((item) => (
                         <option key={item.value} value={item.value}>
@@ -857,12 +855,11 @@ const UserIncoming = () => {
                     </Form.Select>
                   </ListGroup.Item>
                 </ListGroup>
-              )}
             </div>
             
-            <div className="col-lg-2">
+            <div className="flex display-flex  col-2">
               <Button
-                className="mx-0 mx-lg-3 my-3"
+                className="mx-0 mx-3 my-3"
                 onClick={() => {
                   if (sort == "a-z") {
                     setSort("z-a");
@@ -874,13 +871,13 @@ const UserIncoming = () => {
                 Sort {sort}
               </Button>
             </div>
-            <div className="col-lg-5">
-              <div className="search flex w-100 ">
+            <div className="flex justify-content-end col ">
+              <div className="search flex w-100 ms-auto">
                 <input
                   onChange={(e) => setSearch(e.target.value)}
                   type="text"
                   placeholder="Search docID, name, etc..."
-                  className="form form-control w-75 bg-secondary mx-2"
+                  className="form form-control bg-secondary mx-2"
                 />
                 <FaSearch />
               </div>
@@ -1003,7 +1000,7 @@ const UserIncoming = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredExternalMessages.map((message) => {
+                {classificationFilteredExternal.map((message) => {
                   return (
                     <tr key={message.code}>
                       <td>
