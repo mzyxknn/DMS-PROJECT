@@ -1013,7 +1013,7 @@ const UserOutgoing = () => {
                   <th>File Name</th>
                   <th>Reciever</th>
                   <th>Required Action</th>
-                  <th>Date </th>
+                  <th>Date</th>
                   <th>Prioritization</th>
                   <th>Status</th>
                   <th>Action</th>
