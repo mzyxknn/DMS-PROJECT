@@ -47,11 +47,10 @@ import { InputGroup } from "react-bootstrap";
 import Datetime from "react-datetime";
 import "react-datetime/css/react-datetime.css";
 
+import { BarLoader } from "react-spinners";
 
-import { BarLoader } from 'react-spinners';
-
-import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
-import FileDirectoryModal from '../../src/components/FileDirectoryModal'; // Import the FileDirectoryModal component
+import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
+import FileDirectoryModal from "../../src/components/FileDirectoryModal"; // Import the FileDirectoryModal component
 
 const userCollectionRef = collection(db, "users");
 const messagesCollectionRef = collection(db, "messages");
@@ -79,11 +78,12 @@ const Outgoing = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
-  
+  const [currentClassification, setCurrentClassification] = useState("");
+
   const handleOpenModal = () => {
     setShowModal(true);
   };
-  
+
   const handleCloseModal = () => {
     setShowModal(false);
   };
@@ -92,8 +92,6 @@ const Outgoing = () => {
     setSelectedFiles(files);
     handleCloseModal();
   };
-
-  
 
   const sortData = () => {
     const sortedData = [...messages].sort((a, b) => {
@@ -174,31 +172,45 @@ const Outgoing = () => {
     const [multipe, setMultiple] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState([]);
 
-    
-  
-
     const generateRandomCode = () => {
       const min = 1000;
       const max = 99999;
       const code = Math.floor(Math.random() * (max - min + 1)) + min;
       setCode(code.toString());
     };
-
     const validateForm = () => {
-      if (
-        code &&
-        (reciever || selectedUsers.length >= 1) &&
-        subject &&
-        prioritization &&
-        classification &&
-        subClassification &&
-        action &&
-        deliverType &&
-        attachmentDetail
-      ) {
-        return true;
+      if (!multipe) {
+        // Check for validation only when multipe is false
+        if (
+          code &&
+          (reciever || selectedUsers.length >= 1) &&
+          subject &&
+          prioritization &&
+          classification &&
+          subClassification &&
+          action &&
+          deliverType &&
+          attachmentDetail
+        ) {
+          return true;
+        } else {
+          return false;
+        }
       } else {
-        return false;
+        if (
+          (reciever || selectedUsers.length >= 1) &&
+          subject &&
+          prioritization &&
+          classification &&
+          subClassification &&
+          action &&
+          deliverType &&
+          attachmentDetail
+        ) {
+          return true;
+        } else {
+          return false;
+        }
       }
     };
 
@@ -341,6 +353,7 @@ const Outgoing = () => {
 
         if (currentPage == "internal") {
           if (!multipe) {
+            setModalShow(false);
             addDoc(messagesCollectionRef, dataObject).then((document) => {
               const isAll = props.currentUser.uid == reciever;
               if (!isAll) {
@@ -350,8 +363,9 @@ const Outgoing = () => {
                   status: "Created",
                 });
                 toast.success("Your message is succesfully sent!");
-                setModalShow(false);
+                
               } else {
+                setModalShow(false);
                 const docRef = doc(
                   db,
                   "routing",
@@ -365,14 +379,15 @@ const Outgoing = () => {
                   status: "Created",
                   user: getUser(auth.currentUser.uid).fullName,
                 });
-                setModalShow(false);
+                
               }
             });
           } else {
+            setModalShow(false);
+
             selectedUsers.map((user) => {
               const dataObjectCopy = { ...dataObject };
               dataObjectCopy["reciever"] = user.id;
-
               addDoc(messagesCollectionRef, dataObjectCopy).then((document) => {
                 addDoc(collection(db, "routing", document.id, document.id), {
                   createdAt: serverTimestamp(),
@@ -380,15 +395,16 @@ const Outgoing = () => {
                   status: "Created",
                 });
                 toast.success("Your message is succesfully sent!");
-                setModalShow(false);
+                
               });
               sendEmail(fileUrl, user);
             });
           }
         } else {
+          setModalShow(false);
           addDoc(outgoingExternal, dataObject).then(() => {
             toast.success("Your message is succesfully sent!");
-            setModalShow(false);
+            
           });
         }
       } catch (error) {
@@ -412,9 +428,8 @@ const Outgoing = () => {
     };
 
     const handleUpload = async () => {
-      setLoading(true);
       setShow(false);
-    
+      setLoading(true);
       const generateRandomCode = () => {
         const min = 1000;
         const max = 99999;
@@ -460,6 +475,7 @@ const Outgoing = () => {
             createdAt: serverTimestamp(),
             isSendToAll: props.currentUser.uid === user.id,
           };
+          setModalShow(false);
     
           const documentRef = await addDoc(messagesCollectionRef, dataObjectCopy);
           await addDoc(collection(db, "routing", documentRef.id, documentRef.id), {
@@ -507,10 +523,6 @@ const Outgoing = () => {
         setLoading(false);
       }
     };
-    
-    
-    
-    
 
     const handleSelectedUsers = (user) => {
       setSelectedUsers((prevSelectedUsers) => {
@@ -554,7 +566,9 @@ const Outgoing = () => {
                 type="text"
                 placeholder="Document Code"
               />
-              <Button onClick={generateRandomCode}>Generate</Button>
+              <Button onClick={generateRandomCode} disabled={multipe}>
+                Generate
+              </Button>
             </Form.Group>
             <Form.Label>Sender</Form.Label>
 
@@ -581,7 +595,9 @@ const Outgoing = () => {
               </ListGroup.Item>
               <ListGroup.Item
                 className={multipe ? "bg-primary" : ""}
-                onClick={() => setMultiple(true)}
+                onClick={() => {
+                  setMultiple(true);
+                }}
               >
                 Multiple
               </ListGroup.Item>
@@ -779,9 +795,13 @@ const Outgoing = () => {
                   accept=".pdf,.docx"
                 />
               </Form.Group>
-              <Button onClick={handleOpenModal}>Choose from file directory</Button>
+              <Button onClick={handleOpenModal}>
+                Choose from file directory
+              </Button>
               {selectedFiles.length > 0 && (
-                <div className="mt-2">Selected {selectedFiles.length} files</div>
+                <div className="mt-2">
+                  Selected {selectedFiles.length} files
+                </div>
               )}
 
               <Modal show={showModal} onHide={handleCloseModal}>
@@ -790,18 +810,24 @@ const Outgoing = () => {
                 </Modal.Header>
                 <Modal.Body>
                   {/* Your file selection UI goes here */}
-                  <Form.Control type="file" onChange={(e) => handleSelectFile(e.target.files[0])} accept=".pdf,.docx" />
+                  <Form.Control
+                    type="file"
+                    onChange={(e) => handleSelectFile(e.target.files[0])}
+                    accept=".pdf,.docx"
+                  />
                 </Modal.Body>
                 <Modal.Footer>
                   <Button variant="secondary" onClick={handleCloseModal}>
                     Close
                   </Button>
-                  <Button variant="primary" onClick={() => handleSelectFile(selectedFile)}>
+                  <Button
+                    variant="primary"
+                    onClick={() => handleSelectFile(selectedFile)}
+                  >
                     Select
                   </Button>
                 </Modal.Footer>
               </Modal>
-
             </Form.Group>
           </Modal.Body>
         )}
@@ -1061,6 +1087,23 @@ const Outgoing = () => {
     }
   });
 
+  const classificationFilteredInternal = filteredMessages.filter((message) => {
+    if (currentClassification == "") {
+      return message;
+    }
+    if (message.classification == currentClassification) {
+      return message;
+    }
+  });
+  const classificationFilteredExternal = filteredExternalMessages.filter((message) => {
+    if (currentClassification == "") {
+      return message;
+    }
+    if (message.classification == currentClassification) {
+      return message;
+    }
+  });
+
   return (
     <Layout>
       {currentMessage && (
@@ -1106,7 +1149,7 @@ const Outgoing = () => {
           <div className="col-lg-8">
             <div className="wrapper">
               <h2 className="fw-bold my-3 mx-2">
-                Outgoing Messages
+                Outgoing Documents
                 <FaInbox className="mx-2" />
               </h2>
               <div
@@ -1127,7 +1170,7 @@ const Outgoing = () => {
         </div>
         <div className="dashboard-content mx-3 mt-3">
           <div className="row">
-            <div className="col-lg-5">
+            <div className="col-lg-4 mx-2  flex display-flex">
               <ListGroup horizontal>
                 <ListGroup.Item
                   className={`${
@@ -1146,10 +1189,28 @@ const Outgoing = () => {
                   External
                 </ListGroup.Item>
               </ListGroup>
+              <ListGroup className="col-lg-6 p-0 m-0">
+                <ListGroup.Item style={{ border: "none" }}>
+                  <Form.Select
+                    aria-label="Default select example"
+                    onChange={(e) => setCurrentClassification(e.target.value)}
+                  >
+                    <option key={0} value={""}>
+                      Select Classification
+                    </option>
+                    {classificationData.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.value}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </ListGroup.Item>
+              </ListGroup>
             </div>
-            <div className="col-lg-2">
+
+            <div className="flex display-flex  col-2">
               <Button
-                className="mx-0 mx-lg-3 my-3"
+                className="mx-0 mx-3 my-3"
                 onClick={() => {
                   if (sort == "a-z") {
                     setSort("z-a");
@@ -1161,13 +1222,13 @@ const Outgoing = () => {
                 Sort {sort}
               </Button>
             </div>
-            <div className="col-lg-5">
-              <div className="search flex w-100 ">
+            <div className="flex justify-content-end col ">
+              <div className="search flex w-100 ms-auto">
                 <input
                   onChange={(e) => setSearch(e.target.value)}
                   type="text"
                   placeholder="Search docID, name, etc..."
-                  className="form form-control w-75 bg-secondary mx-2"
+                  className="form form-control bg-secondary mx-2"
                 />
                 <FaSearch />
               </div>
@@ -1191,7 +1252,7 @@ const Outgoing = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredMessages.map((message) => {
+                {classificationFilteredInternal.map((message) => {
                   return (
                     <tr key={message.code}>
                       <td>
@@ -1296,7 +1357,7 @@ const Outgoing = () => {
               </thead>
               {externalMessages && (
                 <tbody>
-                  {filteredExternalMessages.map((message) => {
+                  {classificationFilteredExternal.map((message) => {
                     return (
                       <tr key={message.code}>
                         <td>
@@ -1320,7 +1381,7 @@ const Outgoing = () => {
                             {message.fileName}
                           </div>
                         </td>{" "}
-                        <td>{message.reciever} -</td>
+                        <td>{message.reciever}</td>
                         <td>{message.action}</td>
                         {message.date && (
                           <td>{moment(message.date.toDate()).format("LLL")}</td>

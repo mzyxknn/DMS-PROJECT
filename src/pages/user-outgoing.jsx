@@ -152,24 +152,46 @@ const UserOutgoing = () => {
       setCode(code.toString());
     };
     const validateForm = () => {
-      if (
-        code &&
-        (reciever || selectedUsers.length >= 1) &&
-        subject &&
-        prioritization &&
-        classification &&
-        subClassification &&
-        action &&
-        deliverType &&
-        attachmentDetail
-      ) {
-        return true;
+      if (!multipe) {
+        // Check for validation only when multipe is false
+        if (
+          code &&
+          (reciever || selectedUsers.length >= 1) &&
+          subject &&
+          prioritization &&
+          classification &&
+          subClassification &&
+          action &&
+          deliverType &&
+          attachmentDetail
+        ) {
+          return true;
+        } else {
+          return false;
+        }
       } else {
-        return false;
+        if (
+          (reciever || selectedUsers.length >= 1) &&
+          subject &&
+          prioritization &&
+          classification &&
+          subClassification &&
+          action &&
+          deliverType &&
+          attachmentDetail
+        ) {
+          return true;
+        } else {
+          return false;
+        }
+        // Skip validation when multipe is true
+        return true;
       }
     };
+
     function ConfirmationModal() {
       const handleClose = () => setShow(false);
+
       return (
         <>
           <Modal show={show} onHide={handleClose}>
@@ -192,10 +214,13 @@ const UserOutgoing = () => {
         </>
       );
     }
+
     const handleSendSMS = async () => {
       const textReciever = getUser(reciever);
       const textSender = getUser(props.currentUser.uid);
+
       const message = `You have received a new message from ${textSender.fullName} with a subject: ${subject}. Please log in to your account to view and respond to the message.`;
+
       try {
         const username = "Sowishi";
         const password = "sdfsdfjsdlkfjsdjfsld3533535GKJlgfgjdlf@";
@@ -235,6 +260,7 @@ const UserOutgoing = () => {
         toast.error(error.toString());
       }
     };
+
     const sendEmail = (docLink, toUser) => {
       let emailReciever = getUser(reciever);
       if (toUser) {
@@ -252,6 +278,7 @@ const UserOutgoing = () => {
         to_email: emailReciever.email,
         document_link: docLink,
       };
+
       emailjs
         .send(
           "service_aph5krh", // Replace with your EmailJS service ID
@@ -266,6 +293,7 @@ const UserOutgoing = () => {
           console.log("Error sending email:", error);
         });
     };
+
     const handleSubmit = (fileUrl) => {
       let documentState = "Pending";
       if (currentPage == "external") {
@@ -274,6 +302,7 @@ const UserOutgoing = () => {
       if (!file) {
         documentState = "In Progress";
       }
+
       try {
         const dataObject = {
           code: code || null,
@@ -296,6 +325,7 @@ const UserOutgoing = () => {
           createdAt: serverTimestamp(),
           isSendToALl: props.currentUser.uid === reciever,
         };
+
         if (currentPage == "internal") {
           if (!multipe) {
             addDoc(messagesCollectionRef, dataObject).then((document) => {
@@ -329,6 +359,7 @@ const UserOutgoing = () => {
             selectedUsers.map((user) => {
               const dataObjectCopy = { ...dataObject };
               dataObjectCopy["reciever"] = user.id;
+
               addDoc(messagesCollectionRef, dataObjectCopy).then((document) => {
                 addDoc(collection(db, "routing", document.id, document.id), {
                   createdAt: serverTimestamp(),
@@ -366,32 +397,109 @@ const UserOutgoing = () => {
       // console.log("Attachment Detail:", attachmentDetail);
       // console.log("File:", file);
     };
+
     const handleUpload = async () => {
       setLoading(true);
       setShow(false);
-      if (file) {
+    
+      const generateRandomCode = () => {
+        const min = 1000;
+        const max = 99999;
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      };
+    
+      const generateCodeForUser = () => {
+        return generateRandomCode().toString();
+      };
+    
+      const uploadFile = async (file) => {
         const storageRef = ref(storage, `uploads/${file.name}`);
-        uploadBytes(storageRef, file).then((snapshot) => {
-          getDownloadURL(storageRef)
-            .then((url) => {
-              if (url) {
-                if (enableSMS && currentPage == "internal") {
-                  // handleSendSMS();
-                  if (!multipe) {
-                    sendEmail(url);
-                  }
-                }
-                handleSubmit(url);
-              }
-            })
-            .catch((error) => {
-              console.error("Error getting download URL:", error);
-            });
-        });
-      } else {
-        handleSubmit();
+        try {
+          const snapshot = await uploadBytes(storageRef, file);
+          const fileUrl = await getDownloadURL(snapshot.ref);
+          return fileUrl;
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          throw new Error("Error uploading file. Please try again.");
+        }
+      };
+    
+      const handleDocumentForUser = async (user, fileUrl) => {
+        try {
+          const dataObjectCopy = {
+            code: generateCodeForUser(),
+            sender: props.currentUser.uid || null,
+            reciever: user.id,
+            subject,
+            description,
+            prioritization,
+            date: serverTimestamp(),
+            classification,
+            subClassification,
+            action,
+            dueDate,
+            deliverType,
+            documentFlow: currentPage === "internal" ? "Internal" : "External",
+            attachmentDetail,
+            fileUrl: fileUrl || "N/A",
+            fileName: file.name || "N/A",
+            status: "Pending",
+            createdAt: serverTimestamp(),
+            isSendToAll: props.currentUser.uid === user.id,
+          };
+    
+          const documentRef = await addDoc(messagesCollectionRef, dataObjectCopy);
+          setShowModal(false)
+          await addDoc(collection(db, "routing", documentRef.id, documentRef.id), {
+            createdAt: serverTimestamp(),
+            message: dataObjectCopy,
+            status: "Created",
+          });
+    
+          toast.success(`Your message is successfully sent to ${user.fullName}`);
+          sendEmail(fileUrl, user);
+        } catch (error) {
+          console.error("Error handling document for user:", error);
+          toast.error(`Error sending document to ${user.fullName}. Please try again.`);
+        }
+      };
+    
+      try {
+        if (file) {
+          const fileUrl = await uploadFile(file);
+    
+          if (enableSMS && currentPage === "internal") {
+            if (!multipe) {
+              sendEmail(fileUrl);
+              handleSubmit(fileUrl);
+            } else {
+              // Handle multiple users
+              const promises = selectedUsers.map((user) => {
+                return handleDocumentForUser(user, fileUrl);
+              });
+    
+              await Promise.all(promises);
+            }
+          } else {
+            // Continue with the existing logic for single user
+            handleSubmit(fileUrl);
+          }
+        } else {
+          // Continue with the existing logic for single user
+          handleSubmit();
+        }
+      } catch (error) {
+        console.error("Error handling upload:", error);
+        toast.error(error.message || "Error sending document. Please try again.");
+      } finally {
+        setLoading(false);
       }
     };
+    
+    
+    
+    
+
     const handleSelectedUsers = (user) => {
       setSelectedUsers((prevSelectedUsers) => {
         const userIndex = prevSelectedUsers.findIndex((u) => u.id === user.id);
@@ -432,7 +540,7 @@ const UserOutgoing = () => {
                 type="text"
                 placeholder="Document Code"
               />
-              <Button onClick={generateRandomCode}>Generate</Button>
+              <Button onClick={generateRandomCode} disabled={multipe}>Generate</Button>
             </Form.Group>
             <Form.Label>Sender</Form.Label>
             <Form.Control
@@ -458,7 +566,7 @@ const UserOutgoing = () => {
               </ListGroup.Item>
               <ListGroup.Item
                 className={multipe ? "bg-primary" : ""}
-                onClick={() => setMultiple(true)}
+                onClick={() => {setMultiple(true)}}
               >
                 Multiple
               </ListGroup.Item>
@@ -857,6 +965,7 @@ const UserOutgoing = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
   const filteredMessages = messages.filter((message) => {
     const sender = getUser(message.sender);
     const reciever = getUser(message.reciever);
@@ -955,7 +1064,7 @@ const UserOutgoing = () => {
             )}
           </div>
           <div className="row">
-            <div className="col-lg-6 mx-2  flex display-flex">
+            <div className="col-lg-5 flex justify-content-start">
               <ListGroup horizontal>
                 <ListGroup.Item
                   className={`${
@@ -967,7 +1076,7 @@ const UserOutgoing = () => {
                   Internal
                 </ListGroup.Item>
               </ListGroup>
-              <ListGroup className="col-lg-10 flex display-block p-0 m-0">
+              <ListGroup className="col-lg-4 d-flex flex-column gap-2  m-0 p-0">
                 <ListGroup.Item style={{ border: "none" }}>
                   <Form.Select
                     aria-label="Default select example"
@@ -986,7 +1095,7 @@ const UserOutgoing = () => {
               </ListGroup>
             </div>
 
-            <div className="flex display-flex  col-2">
+            <div className="flex col-lg-2 justify-content-start">
               <Button
                 className="mx-0 mx-3 my-3"
                 onClick={() => {
@@ -1000,7 +1109,7 @@ const UserOutgoing = () => {
                 Sort {sort}
               </Button>
             </div>
-            <div className="flex justify-content-end col ">
+            <div className="flex justify-content-end col">
               <div className="search flex w-100 ms-auto">
                 <input
                   onChange={(e) => setSearch(e.target.value)}
