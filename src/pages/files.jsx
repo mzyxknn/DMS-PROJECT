@@ -137,52 +137,70 @@ const Files = () => {
 
   function AddFile(props) {
     const [show, setShow] = useState(false);
-    const [file, setFile] = useState(null);
-
-    const handleClose = () => setShow(false);
+    const [files, setFiles] = useState([]);
+  
+    const handleClose = () => {
+      setShow(false);
+      setFiles([]); // Clear selected files after closing the modal
+    };
+  
     const handleShow = () => setShow(true);
-
-    const createFile = () => {
+  
+    const createFiles = async () => {
+      console.log("Files:", files); // Log files before map
       setLoading(true);
-      if (file) {
-        const storageRef = ref(storage, `uploads/${file.name}`);
-        uploadBytes(storageRef, file).then((snapshot) => {
-          getDownloadURL(storageRef)
-            .then((url) => {
-              if (url) {
-                addDoc(
-                  collection(
-                    db,
-                    "storage",
-                    auth.currentUser.uid,
-                    currentFolder
-                  ),
-                  {
-                    fileName: file.name,
-                    fileURL: url,
-                    owner: auth.currentUser.uid,
-                    isFolder: false,
-                    createdAt: serverTimestamp(),
-                  }
-                );
-                handleClose();
-                setLoading(false);
-              }
-            })
-            .catch((error) => {
-              console.error("Error getting download URL:", error);
-            });
-        });
-      } else {
-        toast.error("There's no file!");
+    
+      try {
+        // Ensure files is an array
+        const filesArray = Array.isArray(files) ? files : [files];
+    
+        if (filesArray.length > 0) {
+          const uploadPromises = filesArray.map(async (file) => {
+            const storageRef = ref(storage, `uploads/${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+    
+            return {
+              fileName: file.name,
+              fileURL: url,
+              owner: auth.currentUser.uid,
+              isFolder: false,
+              createdAt: serverTimestamp(),
+            };
+          });
+    
+          const results = await Promise.allSettled(uploadPromises);
+    
+          const successfulUploads = results
+            .filter((result) => result.status === 'fulfilled')
+            .map((result) => result.value);
+    
+          if (successfulUploads.length > 0) {
+            const docRef = collection(db, "storage", auth.currentUser.uid, currentFolder);
+            await Promise.all(successfulUploads.map((fileData) => addDoc(docRef, fileData)));
+    
+            handleClose();
+            setLoading(false);
+          } else {
+            toast.error("No files were successfully uploaded!");
+            setLoading(false);
+          }
+        } else {
+          toast.error("No files selected!");
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error uploading files:", error);
+        toast.error("Error uploading files. Please try again.");
         setLoading(false);
       }
     };
-
+    
+  
     return (
       <>
         <Button className="mx-3" variant="primary " onClick={handleShow}>
-          <h6 className="fw-bold text-white px-3 mb-0 py-1">Upload File</h6>
+          <h6 className="fw-bold text-white px-3 mb-0 py-1">Upload Files</h6>
         </Button>{" "}
         <Modal size="lg" show={show} onHide={handleClose}>
           <Modal.Header className="bg-primary" closeButton>
@@ -190,20 +208,22 @@ const Files = () => {
           </Modal.Header>
           <Modal.Body>
             <input
-              onChange={(e) => setFile(e.target.files[0])}
-              type="file"
-              className="form-control"
-              placeholder="Folder Name"
-            />{" "}
+               onChange={(e) => setFiles(Array.from(e.target.files))}
+               type="file"
+               className="form-control"
+               placeholder="Select Files"
+               multiple
+            />
           </Modal.Body>
-
+  
           <Modal.Footer>
-            <Button onClick={createFile}>Upload File</Button>
+            <Button onClick={createFiles}>Upload Files</Button>
           </Modal.Footer>
         </Modal>
       </>
     );
   }
+  
 
   const downloadFile = (file) => {
     console.log(file);
@@ -339,8 +359,11 @@ const Files = () => {
                     if (storage.isFolder) {
                       setCurrentFolder(storage.fileName);
                       fetchFolder(storage.fileName);
-                    }
-                    if (!storage.isFolder) {
+                    } else if (storage.fileURL.toLowerCase().endsWith('.pdf')) {
+                      // Open PDF file in a viewer
+                      window.open(storage.fileURL, '_blank');
+                    } else {
+                      // Handle other file types or actions
                       downloadFile(storage.fileURL);
                     }
                   }}

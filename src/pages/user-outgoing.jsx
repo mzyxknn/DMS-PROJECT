@@ -68,7 +68,6 @@ const UserOutgoing = () => {
   const [subClassificationData, setSubClassificationData] = useState([]);
   const [actionData, setActionData] = useState([]);
 
-
   const sortData = () => {
     const sortedData = [...messages].sort((a, b) => {
       if (sort === "a-z") {
@@ -93,7 +92,6 @@ const UserOutgoing = () => {
   useEffect(() => {
     sortData();
   }, [sort]);
-
 
   const getOfficeStatus = (id) => {
     const office = offices.filter((office) => {
@@ -913,10 +911,10 @@ const UserOutgoing = () => {
       )}
       <DeleteModal />
       <div className="dashboard">
-      <div className="dashboard-content mx-3 mt-3">
+        <div className="dashboard-content mx-3 mt-3">
           <div className="row">
             <div className="wrapper col-lg-8">
-            <h2 className="fw-bold my-3 mx-2">
+              <h2 className="fw-bold my-3 mx-2">
                 Outgoing Documents
                 <FaInbox className="mx-2" />
               </h2>
@@ -925,17 +923,18 @@ const UserOutgoing = () => {
                 style={{ width: "200px", height: "10px", borderRadius: 20 }}
               ></div>
             </div>
-            {currentPage == "external" && (
+            {currentPage == "internal" && (
               <div className="col-lg-4 flex justify-content-end">
-                <img
-                  style={{ width: "150px", cursor: "pointer" }}
-                  onClick={() => setComposeModalOpen(true)}
-                  className="mx-3"
-                  src="./assets/images/Group 8779.png"
-                  alt=""
-                />
-              </div>
+              <img
+                style={{ width: "150px", cursor: "pointer" }}
+                onClick={() => setModalShow(true)}
+                className="mx-3"
+                src="./assets/images/Group 8779.png"
+                alt=""
+              />
+            </div>
             )}
+            
           </div>
           <div className="row">
             <div className="col-lg-4 mx-2  flex display-flex">
@@ -956,27 +955,26 @@ const UserOutgoing = () => {
                 >
                   External
                 </ListGroup.Item>
-                
               </ListGroup>
-                <ListGroup className="col-lg-6 p-0 m-0">
-                  <ListGroup.Item style={{ border: "none" }}>
-                    <Form.Select
-                      aria-label="Default select example"
-                      onChange={(e) => setCurrentClassification(e.target.value)}
-                    >
-                      <option key={0} value={""}>
-                        Select Classification
+              <ListGroup className="col-lg-6 p-0 m-0">
+                <ListGroup.Item style={{ border: "none" }}>
+                  <Form.Select
+                    aria-label="Default select example"
+                    onChange={(e) => setCurrentClassification(e.target.value)}
+                  >
+                    <option key={0} value={""}>
+                      Select Classification
+                    </option>
+                    {classificationData.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.value}
                       </option>
-                      {classificationData.map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.value}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </ListGroup.Item>
-                </ListGroup>
+                    ))}
+                  </Form.Select>
+                </ListGroup.Item>
+              </ListGroup>
             </div>
-            
+
             <div className="flex display-flex  col-2">
               <Button
                 className="mx-0 mx-3 my-3"

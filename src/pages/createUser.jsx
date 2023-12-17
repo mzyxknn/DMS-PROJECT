@@ -47,19 +47,32 @@ function DeleteModal({ showModal, handleClose, handleDelete }) {
 function DropdownAction({ message }) {
   const [deleteModal, setDeleteModal] = useState(false);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     try {
-      const docRef = doc(db, "users", message.id);
-      deleteDoc(docRef).then(() => {
-        toast.success("Successfully Deleted!");
+      const response = await fetch("http://localhost:5137/deleteUser", { //http://localhost:5137/deleteUser , https://lgudms.web.app/deleteUser
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ uid: message.id }), // Use message.id instead of message.uid
+      });
+  
+      const result = await response.json();
+  
+      if (result.success) {
+        toast.success(result.message);
         // Close the modal after successful deletion
         setDeleteModal(false);
-      });
-      console.log(getAuth().currentUser);
+      } else {
+        toast.error(result.message);
+        console.error(result); // Log the error response for debugging
+      }
     } catch (error) {
-      toast.error(error.message);
+      toast.error("Error deleting user.");
+      console.error(result); // Log the error response for debugging
     }
   };
+  
 
   const openModal = () => setDeleteModal(true);
   const closeModal = () => setDeleteModal(false);
