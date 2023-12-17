@@ -14,6 +14,7 @@ import Table from "react-bootstrap/Table";
 import Layout from "../layout/layout";
 import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
+import { FaRoute } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import {
   collection,
@@ -79,7 +80,7 @@ const Dashboard = () => {
             response before the deadline
           </p>
           {urgentFiles && (
-            <Table bordered variant="white">
+            <Table responsive bordered variant="white">
               <thead>
                 <tr>
                   <th>DocID</th>
@@ -163,36 +164,15 @@ const Dashboard = () => {
     };
 
     return (
-      <Dropdown>
-        <Dropdown.Toggle variant="secondary" id="dropdown-basic">
-          <img src="./assets/images/pepicons-pencil_dots-y.png" alt="" />
-        </Dropdown.Toggle>
-
-        <Dropdown.Menu>
-          <Dropdown.Item
-            onClick={() => {
-              setShowViewModal(true);
-              setCurrentMessage(message);
-            }}
-          >
-            View Detail <FaEye />
-          </Dropdown.Item>
-          <Dropdown.Item onClick={downloadFIle}>
-            Download <FaDownload />
-          </Dropdown.Item>
-          <Dropdown.Item onClick={handleDelete}>
-            Delete <FaTrash />
-          </Dropdown.Item>
-          <Dropdown.Item
-            onClick={() => {
-              setCurrentMessage(message);
-              setShowRouting(true);
-            }}
-          >
-            View Routing <FaMap />
-          </Dropdown.Item>
-        </Dropdown.Menu>
-      </Dropdown>
+      <Button
+      variant="secondary"
+      onClick={() => {
+        setCurrentMessage(message);
+        setShowRouting(true);
+      }}
+    >
+      <FaRoute size={20} />
+    </Button>
     );
   }
 
@@ -345,7 +325,6 @@ const Dashboard = () => {
       return message;
     }
   });
-  
 
   const filteredMessagesFinal = filteredMessages.filter((message) => {
     if (filter == "all") {
@@ -368,13 +347,6 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="dashboard">
-        {messages && (
-          <UrgentModal
-            show={urgent}
-            onHide={() => setUrgent(false)}
-            urgentFiles={urgentFiles}
-          />
-        )}
         {currentMessage && (
           <ViewModal
             getUser={getUserData}
@@ -470,7 +442,6 @@ const Dashboard = () => {
                   <Form.Select
                     aria-label="Default select example"
                     onChange={(e) => setCurrentClassification(e.target.value)}
-                    
                   >
                     <option key={0} value={""}>
                       Please select classification
@@ -515,7 +486,7 @@ const Dashboard = () => {
           {loading && <PlaceHolder />}
 
           {messages && (
-            <Table responsive="md" variant="white">
+            <Table responsive="md" bordered variant="white">
               <thead>
                 <tr>
                   <th>DocID</th>
@@ -527,7 +498,7 @@ const Dashboard = () => {
                   <th>Date </th>
                   <th>Prioritization</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th>Routing</th>
                 </tr>
               </thead>
               <tbody>
@@ -542,14 +513,14 @@ const Dashboard = () => {
                       </td>
                       <td>{message.subject}</td>
                       <td
-                        style={{ cursor: "pointer" }}
+                      /* style={{ cursor: "pointer" }}
                         onClick={() => {
                           setCurrentMessage(message);
                           setShowViewModal(true);
-                        }}
+                        }} */
                       >
                         <div
-                          style={{ textDecoration: "underline" }}
+                          /* style={{ textDecoration: "underline" }} */
                           className="text-dark fw-bold"
                         >
                           {message.fileName}

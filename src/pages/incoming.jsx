@@ -254,7 +254,7 @@ const incoming = () => {
               }
             }}
           >
-            Send Message
+            Upload Document
           </Button>
 
           <Modal show={show} onHide={handleClose}>
@@ -349,7 +349,7 @@ const incoming = () => {
         ) : (
           <Modal.Body>
             <div className="title bg-primary w-100">
-              <h5 className="text-white mx-3 p-2 my-3">Details</h5>
+              <h5 className="text-white mx-3 p-2 my-3">Document Details</h5>
             </div>
             <Form.Label>Document Code</Form.Label>
 
@@ -475,7 +475,7 @@ const incoming = () => {
               <h5 className="text-white mx-3 p-2 my-3">Attachments</h5>
             </div>
             <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
-              <Form.Label>Details</Form.Label>
+              <Form.Label>Attachment Details</Form.Label>
               <Form.Control
                 onChange={(e) => setAttachmentDetail(e.target.value)}
                 type="text"
@@ -647,11 +647,12 @@ const incoming = () => {
             }
           }
         });
+        
+        setUrgentFiles(urgents);
+        setMessages(messages);
         if (urgents.length >= 1) {
           setUrgent(true);
         }
-        setUrgentFiles(urgents);
-        setMessages(messages);
       },
       (error) => {
         console.error("Error listening to collection:", error);
