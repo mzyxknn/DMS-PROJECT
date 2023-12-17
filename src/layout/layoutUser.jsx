@@ -20,39 +20,6 @@ const LayoutUser = ({ children }) => {
   const [user, setUser] = useState(null);
   const [show, setShow] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
-  const [userOffice, setUserOffice] = useState("Not Specified");
-  const [loadingOffice, setLoadingOffice] = useState(true);
-  const getOffice = async () => {
-    if (auth.currentUser) {
-      const userRef = doc(db, "users", auth.currentUser.uid);
-      const snapshot = await getDoc(userRef);
-      const officeId = snapshot.data()?.office;
-      
-      if (officeId) {
-        const officeDoc = doc(db, "offices", officeId);
-        const officeSnapshot = await getDoc(officeDoc);
-        return officeSnapshot.data();
-      }
-    }
-    
-    return null; // or handle the case when no office is found
-  };
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const officeData = await getOffice();
-        setUserOffice(officeData?.name || "Not Specified");
-      } catch (error) {
-        console.error("Error fetching office data:", error);
-        // Handle the error, e.g., setUserOffice("Not Specified") or display an error message
-      } finally {
-        setLoadingOffice(false);
-      }
-    };
-  
-    fetchData();
-  }, []); 
 
   const getUser = async () => {
     const userRef = doc(db, "users", auth.currentUser.uid);
@@ -105,7 +72,7 @@ const LayoutUser = ({ children }) => {
           address: address,
           phone: phone,
           profile: profileLink || (user && user.profile) || null,
-          //profile: profileLink ? profileLink : user.profile,
+          //profile: profileLink ? profileLink : user.profile, 
         };
         const userDoc = doc(db, "users", props.user.id);
         setDoc(userDoc, data, { merge: true }).then((res) => {
@@ -293,18 +260,6 @@ const LayoutUser = ({ children }) => {
                 +63{user.phone ? user.phone : "Not Specified"}
               </h6>
             </div>
-
-            <div
-              className="bg-secondary p-2 px-4 w-100 my-2"
-              style={{ borderRadius: 15 }}
-            >
-              <p className="mb-0">Office</p>
-              {loadingOffice ? (
-                <span>Loading...</span>
-              ) : (
-                <h6 className="mb-0">{userOffice}</h6>
-              )}
-            </div>
           </Modal.Body>
           <Modal.Footer>
             <Button onClick={() => setEditProfile(true)}>Edit Profile</Button>
@@ -358,7 +313,7 @@ const LayoutUser = ({ children }) => {
       <SidebarWrapper show={show} handleClose={() => setShow(false)} />
       <div className="main w-100">
         <div className="main-header fixed-top bg-primary py-2 w-100 d-flex justify-content-between align-items-center">
-          <div className="flex mx-4">
+          <div className="flex mx-3">
             <img
               style={{ cursor: "pointer" }}
               onClick={() => setShow(true)}

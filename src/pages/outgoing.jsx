@@ -43,7 +43,7 @@ import moment from "moment";
 import axios from "axios";
 import Routing from "../components/routing";
 import emailjs from "emailjs-com";
-import { FormGroup, InputGroup } from "react-bootstrap";
+import { InputGroup } from "react-bootstrap";
 import Datetime from "react-datetime";
 import "react-datetime/css/react-datetime.css";
 
@@ -158,38 +158,20 @@ const Outgoing = () => {
     };
 
     const validateForm = () => {
-      if (!multipe) {
-        // Check for validation only when multipe is false
-        if (
-          code &&
-          (reciever || selectedUsers.length >= 1) &&
-          subject &&
-          prioritization &&
-          classification &&
-          subClassification &&
-          action &&
-          deliverType &&
-          attachmentDetail
-        ) {
-          return true;
-        } else {
-          return false;
-        }
+      if (
+        code &&
+        (reciever || selectedUsers.length >= 1) &&
+        subject &&
+        prioritization &&
+        classification &&
+        subClassification &&
+        action &&
+        deliverType &&
+        attachmentDetail
+      ) {
+        return true;
       } else {
-        if (
-          (reciever || selectedUsers.length >= 1) &&
-          subject &&
-          prioritization &&
-          classification &&
-          subClassification &&
-          action &&
-          deliverType &&
-          attachmentDetail
-        ) {
-          return true;
-        } else {
-          return false;
-        }
+        return false;
       }
     };
 
@@ -335,15 +317,14 @@ const Outgoing = () => {
             addDoc(messagesCollectionRef, dataObject).then((document) => {
               const isAll = props.currentUser.uid == reciever;
               if (!isAll) {
-                setModalShow(false);
                 addDoc(collection(db, "routing", document.id, document.id), {
                   createdAt: serverTimestamp(),
                   message: dataObject,
                   status: "Created",
                 });
                 toast.success("Your message is succesfully sent!");
-              } else {
                 setModalShow(false);
+              } else {
                 const docRef = doc(
                   db,
                   "routing",
@@ -357,14 +338,14 @@ const Outgoing = () => {
                   status: "Created",
                   user: getUser(auth.currentUser.uid).fullName,
                 });
+                setModalShow(false);
               }
             });
           } else {
-            setModalShow(false);
-
             selectedUsers.map((user) => {
               const dataObjectCopy = { ...dataObject };
               dataObjectCopy["reciever"] = user.id;
+
               addDoc(messagesCollectionRef, dataObjectCopy).then((document) => {
                 addDoc(collection(db, "routing", document.id, document.id), {
                   createdAt: serverTimestamp(),
@@ -372,14 +353,15 @@ const Outgoing = () => {
                   status: "Created",
                 });
                 toast.success("Your message is succesfully sent!");
+                setModalShow(false);
               });
               sendEmail(fileUrl, user);
             });
           }
         } else {
-          setModalShow(false);
           addDoc(outgoingExternal, dataObject).then(() => {
             toast.success("Your message is succesfully sent!");
+            setModalShow(false);
           });
         }
       } catch (error) {
@@ -403,19 +385,19 @@ const Outgoing = () => {
     };
 
     const handleUpload = async () => {
-      setShow(false);
       setLoading(true);
-
+      setShow(false);
+    
       const generateRandomCode = () => {
         const min = 1000;
         const max = 99999;
         return Math.floor(Math.random() * (max - min + 1)) + min;
       };
-
+    
       const generateCodeForUser = () => {
         return generateRandomCode().toString();
       };
-
+    
       const uploadFile = async (file) => {
         const storageRef = ref(storage, `uploads/${file.name}`);
         try {
@@ -427,7 +409,7 @@ const Outgoing = () => {
           throw new Error("Error uploading file. Please try again.");
         }
       };
-
+    
       const handleDocumentForUser = async (user, fileUrl) => {
         try {
           const dataObjectCopy = {
@@ -451,38 +433,26 @@ const Outgoing = () => {
             createdAt: serverTimestamp(),
             isSendToAll: props.currentUser.uid === user.id,
           };
-          setModalShow(false);
-          const documentRef = await addDoc(
-            messagesCollectionRef,
-            dataObjectCopy
-          );
-
-          await addDoc(
-            collection(db, "routing", documentRef.id, documentRef.id),
-            {
-              createdAt: serverTimestamp(),
-              message: dataObjectCopy,
-              status: "Created",
-            }
-          );
-
-          toast.success(
-            `Your message is successfully sent to ${user.fullName}`
-          );
+    
+          const documentRef = await addDoc(messagesCollectionRef, dataObjectCopy);
+          await addDoc(collection(db, "routing", documentRef.id, documentRef.id), {
+            createdAt: serverTimestamp(),
+            message: dataObjectCopy,
+            status: "Created",
+          });
+    
+          toast.success(`Your message is successfully sent to ${user.fullName}`);
           sendEmail(fileUrl, user);
-          setModalShow(false);
         } catch (error) {
           console.error("Error handling document for user:", error);
-          toast.error(
-            `Error sending document to ${user.fullName}. Please try again.`
-          );
+          toast.error(`Error sending document to ${user.fullName}. Please try again.`);
         }
       };
-
+    
       try {
         if (file) {
           const fileUrl = await uploadFile(file);
-
+    
           if (enableSMS && currentPage === "internal") {
             if (!multipe) {
               sendEmail(fileUrl);
@@ -492,12 +462,11 @@ const Outgoing = () => {
               const promises = selectedUsers.map((user) => {
                 return handleDocumentForUser(user, fileUrl);
               });
-
+    
               await Promise.all(promises);
             }
           } else {
             // Continue with the existing logic for single user
-            setModalShow(false);
             handleSubmit(fileUrl);
           }
         } else {
@@ -506,13 +475,15 @@ const Outgoing = () => {
         }
       } catch (error) {
         console.error("Error handling upload:", error);
-        toast.error(
-          error.message || "Error sending document. Please try again."
-        );
+        toast.error(error.message || "Error sending document. Please try again.");
       } finally {
         setLoading(false);
       }
     };
+    
+    
+    
+    
 
     const handleSelectedUsers = (user) => {
       setSelectedUsers((prevSelectedUsers) => {
@@ -545,7 +516,6 @@ const Outgoing = () => {
             <div className="title bg-primary w-100">
               <h5 className="text-white mx-3 p-2 my-3">Document Details</h5>
             </div>
-
             <Form.Label>Document Code</Form.Label>
 
             <Form.Group
@@ -557,11 +527,8 @@ const Outgoing = () => {
                 type="text"
                 placeholder="Document Code"
               />
-              <Button onClick={generateRandomCode} disabled={multipe}>
-                Generate
-              </Button>
+              <Button onClick={generateRandomCode}>Generate</Button>
             </Form.Group>
-
             <Form.Label>Sender</Form.Label>
 
             <Form.Control
@@ -575,43 +542,23 @@ const Outgoing = () => {
               className="mb-3"
               disabled
             />
-            <>
-              {currentPage == "internal" ? (
-                <ListGroup horizontal className="my-2">
-                  <ListGroup.Item
-                    className={!multipe ? "bg-primary" : ""}
-                    onClick={() => {
-                      setMultiple(false);
-                      setSelectedUsers([]);
-                    }}
-                  >
-                    Single
-                  </ListGroup.Item>
-                  <ListGroup.Item
-                    className={multipe ? "bg-primary" : ""}
-                    onClick={() => setMultiple(true)}
-                  >
-                    Multiple
-                  </ListGroup.Item>
-                </ListGroup>
-              ) : (
-                <ListGroup horizontal className="my-2">
-                  <ListGroup.Item
-                    className={!multipe ? "bg-primary" : ""}
-                    onClick={() => {
-                      setMultiple(false);
-                      setSelectedUsers([]);
-                    }}
-                    disabled
-                  >
-                    Single
-                  </ListGroup.Item>
-                </ListGroup>
-              )}
-              <FormGroup>
-                  <Form.Label>Receiver</Form.Label>
-                </FormGroup>
-            </>
+            <ListGroup horizontal className="my-2">
+              <ListGroup.Item
+                className={!multipe ? "bg-primary" : ""}
+                onClick={() => {
+                  setMultiple(false);
+                  setSelectedUsers([]);
+                }}
+              >
+                Single
+              </ListGroup.Item>
+              <ListGroup.Item
+                className={multipe ? "bg-primary" : ""}
+                onClick={() => setMultiple(true)}
+              >
+                Multiple
+              </ListGroup.Item>
+            </ListGroup>
 
             {currentPage == "internal" && (
               <>
@@ -1053,7 +1000,7 @@ const Outgoing = () => {
   });
 
   const filteredExternalMessages = externalMessages.filter((message) => {
-    const sender = getUser(message.reciever);
+    const sender = getUser(message.sender);
     if (
       message.code.toLowerCase().startsWith(search.toLowerCase()) ||
       message.fileName.toLowerCase().startsWith(search.toLowerCase()) ||
@@ -1063,25 +1010,6 @@ const Outgoing = () => {
       return message;
     }
   });
-
-  const classificationFilteredInternal = filteredMessages.filter((message) => {
-    if (currentClassification == "") {
-      return message;
-    }
-    if (message.classification == currentClassification) {
-      return message;
-    }
-  });
-  const classificationFilteredExternal = filteredExternalMessages.filter(
-    (message) => {
-      if (currentClassification == "") {
-        return message;
-      }
-      if (message.classification == currentClassification) {
-        return message;
-      }
-    }
-  );
 
   return (
     <Layout>
@@ -1122,7 +1050,7 @@ const Outgoing = () => {
           <div className="col-lg-8">
             <div className="wrapper">
               <h2 className="fw-bold my-3 mx-2">
-                Outgoing Documents
+                Outgoing Messages
                 <FaInbox className="mx-2" />
               </h2>
               <div
@@ -1143,7 +1071,7 @@ const Outgoing = () => {
         </div>
         <div className="dashboard-content mx-3 mt-3">
           <div className="row">
-            <div className="col-lg-4 flex display-flex">
+            <div className="col-lg-5">
               <ListGroup horizontal>
                 <ListGroup.Item
                   className={`${
@@ -1162,27 +1090,8 @@ const Outgoing = () => {
                   External
                 </ListGroup.Item>
               </ListGroup>
-              <ListGroup>
-                <ListGroup.Item style={{ border: "none" }}>
-                  <Form.Select
-                    aria-label="Default select example"
-                    onChange={(e) => setCurrentClassification(e.target.value)}
-                  >
-                    <option key={0} value={""}>
-                      Please select classification
-                    </option>{" "}
-                    {classificationData.map((item) => {
-                      return (
-                        <option key={item.value} value={item.value}>
-                          {item.value}
-                        </option>
-                      );
-                    })}
-                  </Form.Select>
-                </ListGroup.Item>
-              </ListGroup>
             </div>
-            <div className="col-lg-1 flex display-flex">
+            <div className="col-lg-2">
               <Button
                 className="mx-0 mx-lg-3 my-3"
                 onClick={() => {
@@ -1196,7 +1105,7 @@ const Outgoing = () => {
                 Sort {sort}
               </Button>
             </div>
-            <div className="col-lg-7 flex display-flex gap-2">
+            <div className="col-lg-5">
               <div className="search flex w-100 ">
                 <input
                   onChange={(e) => setSearch(e.target.value)}
@@ -1226,7 +1135,7 @@ const Outgoing = () => {
                 </tr>
               </thead>
               <tbody>
-                {classificationFilteredInternal.map((message) => {
+                {filteredMessages.map((message) => {
                   return (
                     <tr key={message.code}>
                       <td>
@@ -1240,8 +1149,7 @@ const Outgoing = () => {
                         style={{ cursor: "pointer" }}
                         onClick={() => {
                           setCurrentMessage(message);
-                          setModalShow(true);
-                          handleSeen(message);
+                          setShowViewModal(true);
                         }}
                       >
                         <div
@@ -1252,18 +1160,17 @@ const Outgoing = () => {
                         </div>
                       </td>
                       <td>
-                        <td>
-                          {message.sender == message.reciever ? (
-                            "Send to all"
-                          ) : (
-                            <>
-                              {getUser(message.reciever).fullName} -
-                              <b> {getUser(message.reciever).position}</b>
-                            </>
-                          )}
-                        </td>
-                        <td>{message.action}</td>
+                        {message.sender == message.reciever ? (
+                          "Send to all"
+                        ) : (
+                          <>
+                            {getUser(message.reciever).fullName} -
+                            <b> {getUser(message.reciever).position}</b>
+                          </>
+                        )}
                       </td>
+                      <td>{message.action}</td>
+
                       {message.date && (
                         <td>{moment(message.date.toDate()).format("LLL")}</td>
                       )}
@@ -1323,7 +1230,7 @@ const Outgoing = () => {
                   <th>DocID</th>
                   <th>Subject</th>
                   <th>File Name</th>
-                  <th>Receiver</th>
+                  <th>Sender</th>
                   <th>Required Action</th>
                   <th>Date </th>
                   <th>Prioritization</th>
@@ -1333,7 +1240,7 @@ const Outgoing = () => {
               </thead>
               {externalMessages && (
                 <tbody>
-                  {classificationFilteredExternal.map((message) => {
+                  {filteredExternalMessages.map((message) => {
                     return (
                       <tr key={message.code}>
                         <td>
@@ -1357,7 +1264,7 @@ const Outgoing = () => {
                             {message.fileName}
                           </div>
                         </td>{" "}
-                        <td>{message.reciever}</td>
+                        <td>{message.reciever} -</td>
                         <td>{message.action}</td>
                         {message.date && (
                           <td>{moment(message.date.toDate()).format("LLL")}</td>

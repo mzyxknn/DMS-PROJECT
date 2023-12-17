@@ -6,21 +6,7 @@ import { signOut } from "firebase/auth";
 import { auth, db, storage } from "../../firebase";
 import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  onSnapshot,
-  deleteDoc,
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-  query,
-  orderBy,
-} from "firebase/firestore";
-import { useCollectionData } from "react-firebase-hooks/firestore";
-
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import Form from "react-bootstrap/Form";
 
 import Button from "react-bootstrap/Button";
@@ -34,51 +20,7 @@ const Layout = ({ children }) => {
   const [user, setUser] = useState(null);
   const [show, setShow] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
-  const [userOffice, setUserOffice] = useState("Not Specified");
-  const [loadingOffice, setLoadingOffice] = useState(true);
 
-  const officeCollection = collection(db, "offices");
-  const [offices, loadingOffices, errorOffices] = useCollectionData(
-    query(officeCollection, orderBy("name"))
-  );
-
-  useEffect(() => {
-    const fetchData = () => {
-      try {
-        if (user && user.office) {
-          // Assuming the user's office ID is stored in user.office
-          const userOfficeId = user.office;
-  
-          console.log("Offices Data:", offices);
-  
-          if (userOfficeId) {
-            const userOffice = offices.find((office) => office.id === userOfficeId);
-            setUserOffice(userOffice?.officeName || "Not Specified");
-            console.log("User Office Data:", userOffice);
-          } else {
-            setUserOffice("Not Specified");
-          }
-        } else {
-          setUserOffice("Not Specified");
-        }
-      } catch (error) {
-        console.error("Error fetching office data:", error);
-        setUserOffice("Not Specified");
-      } finally {
-        setLoadingOffice(false);
-      }
-    };
-  
-    fetchData();
-  }, [offices, user && user.office]);
-  
-  
-
-  const navigation = useNavigate();
-  const handleLogout = () => {
-    signOut(auth);
-    navigation("/");
-  };
 
   const getUser = async () => {
     if (auth.currentUser) {
@@ -86,6 +28,11 @@ const Layout = ({ children }) => {
       const snapshot = await getDoc(userRef);
       setUser({ ...snapshot.data(), id: snapshot.id });
     }
+  };
+  const navigation = useNavigate();
+  const handleLogout = () => {
+    signOut(auth);
+    navigation("/");
   };
 
   function UserModal(props) {
@@ -314,15 +261,6 @@ const Layout = ({ children }) => {
                 +63{user.phone ? user.phone : "Not Specified"}
               </h6>
             </div>
-            <div
-              className="bg-secondary p-2 px-4 w-100 my-2"
-              style={{ borderRadius: 15 }}
-            >
-              <p className="mb-0">Office</p>
-              <h6 className="mb-0">
-                {loadingOffice ? "Loading..." : userOffice}
-              </h6>
-            </div>
           </Modal.Body>
           <Modal.Footer>
             <Button onClick={() => setEditProfile(true)}>Edit Profile</Button>
@@ -376,7 +314,7 @@ const Layout = ({ children }) => {
       <SidebarWrapper show={show} handleClose={() => setShow(false)} />
       <div className="main w-100">
         <div className="main-header fixed-top bg-primary py-2 w-100 d-flex justify-content-between align-items-center">
-          <div className="flex mx-4">
+          <div className="flex mx-3">
             <img
               style={{ cursor: "pointer" }}
               onClick={() => setShow(true)}

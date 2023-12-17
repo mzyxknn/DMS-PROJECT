@@ -771,9 +771,7 @@ function ViewModal(props) {
               )}
             </div>
           </div>
-          
           <div className="audit mt-3">
-            
             <h5>Document Logs</h5>
             <Table>
               <thead>
