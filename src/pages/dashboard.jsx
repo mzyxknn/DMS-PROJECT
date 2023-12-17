@@ -194,9 +194,7 @@ const Dashboard = () => {
         </Dropdown.Menu>
       </Dropdown>
     );
-  } /* removed [<Dropdown.Item onClick={handleDelete}>
-            Delete <FaTrash />
-          </Dropdown.Item>]*/
+  }
 
   const getUser = async () => {
     const userRef = doc(db, "users", auth.currentUser.uid);
